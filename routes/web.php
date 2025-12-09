@@ -170,6 +170,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/family/{id}', [\App\Http\Controllers\FamilyController::class, 'update'])->name('family.update');
     Route::delete('/family/{id}', [\App\Http\Controllers\FamilyController::class, 'destroy'])->name('family.destroy');
 
+    // NutriScan AI
+    Route::get('/nutriscan', [\App\Http\Controllers\NutriScanController::class, 'index'])->name('nutriscan.index');
+    Route::post('/nutriscan/analyze', [\App\Http\Controllers\NutriScanController::class, 'analyze'])->name('nutriscan.analyze');
+    Route::post('/nutriscan/log', [\App\Http\Controllers\NutriScanController::class, 'storeLog'])->name('nutriscan.log');
+
+    // FitChef AI
+    Route::get('/fitchef', [\App\Http\Controllers\FitChefController::class, 'index'])->name('fitchef.index');
+    Route::post('/fitchef/generate', [\App\Http\Controllers\FitChefController::class, 'generate'])->name('fitchef.generate');
+
+
     // Onboarding / Setup Profile
     Route::get('/setup-profile', function () {
         return Inertia::render('SetupProfile');
