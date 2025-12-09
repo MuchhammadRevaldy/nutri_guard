@@ -44,6 +44,14 @@ class FamilyMember extends Model
         return $this->hasMany(FoodLog::class);
     }
 
+    /**
+     * Alias for logs, used in Controllers
+     */
+    public function foodLogs()
+    {
+        return $this->hasMany(FoodLog::class);
+    }
+
     protected $appends = ['age_category'];
 
     /**

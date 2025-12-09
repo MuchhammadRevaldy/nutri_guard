@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import FamilyMemberCircle from '@/Components/Dashboard/FamilyMemberCircle';
@@ -8,14 +8,22 @@ import MacroDonutChart from '@/Components/Charts/MacroDonutChart';
 import PrimaryButton from '@/Components/PrimaryButton';
 import InviteMemberModal from '@/Components/Modals/InviteMemberModal';
 import ManageMembersModal from '@/Components/Modals/ManageMembersModal';
+import Modal from '@/Components/Modal';
 
-export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats, weeklyChartData }) {
+export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats, weeklyChartData, success }) {
 
     // Default stats if empty
     const stats = dailyStats || { calories: 0, protein: 0, carbs: 0, fat: 0, goal_calories: 2000 };
 
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [showManageModal, setShowManageModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    useEffect(() => {
+        if (success) {
+            setShowSuccessModal(true);
+        }
+    }, [success]);
 
     return (
         <AuthenticatedLayout
@@ -71,7 +79,7 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
 
                     {/* 2. Action Buttons */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <button className="flex items-center justify-center gap-3 p-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-[1.02]">
+                        <Link href={route('nutriscan.index')} className="flex items-center justify-center gap-3 p-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-[1.02]">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -80,9 +88,9 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
                                 <div className="font-bold text-lg">Scan Food</div>
                                 <div className="text-sm opacity-90">Log your meal with a photo</div>
                             </div>
-                        </button>
+                        </Link>
 
-                        <button className="flex items-center justify-center gap-3 p-6 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-500/30 transition-all transform hover:scale-[1.02]">
+                        <Link href={route('fitchef.index')} className="flex items-center justify-center gap-3 p-6 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-500/30 transition-all transform hover:scale-[1.02]">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                             </svg>
@@ -90,7 +98,7 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
                                 <div className="font-bold text-lg">Generate Recipe</div>
                                 <div className="text-sm opacity-90">AI-powered meal suggestions</div>
                             </div>
-                        </button>
+                        </Link>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -182,6 +190,26 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
 
                 <InviteMemberModal show={showInviteModal} onClose={() => setShowInviteModal(false)} />
                 <ManageMembersModal show={showManageModal} onClose={() => setShowManageModal(false)} members={familyMembers} />
+
+                {/* Success Modal */}
+                {/* Custom Modal for Flash Messages */}
+                <Modal show={showSuccessModal} onClose={() => setShowSuccessModal(false)} maxWidth="sm">
+                    <div className="p-6 text-center">
+                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-6">
+                            <svg className="h-10 w-10 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Saved!</h2>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">{success}</p>
+                        <button
+                            onClick={() => setShowSuccessModal(false)}
+                            className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors"
+                        >
+                            Awesome
+                        </button>
+                    </div>
+                </Modal>
             </div>
         </AuthenticatedLayout>
     );

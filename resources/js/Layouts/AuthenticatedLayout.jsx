@@ -34,8 +34,8 @@ export default function Authenticated({ user, header, children }) {
                             <NavLink href="#" active={false} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
                                 Meal Planner
                             </NavLink>
-                            <NavLink href="#" active={true} className="text-emerald-500 font-bold border-none">
-                                FitChef AI
+                            <NavLink href={route('nutriscan.index')} active={route().current('nutriscan.index')} className={`text-emerald-500 font-bold ${route().current('nutriscan.index') ? 'border-b-2 border-emerald-500' : 'border-none'}`}>
+                                NutriScan AI
                             </NavLink>
                             <NavLink href="#" active={false} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
                                 Community
