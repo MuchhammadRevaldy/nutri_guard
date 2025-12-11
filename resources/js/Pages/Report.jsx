@@ -18,24 +18,19 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
         <AuthenticatedLayout
             user={auth.user}
             header={
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <Link href={route('dashboard')} className="text-gray-400 hover:text-gray-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                            </svg>
-                        </Link>
-                        <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                            Weekly Report ({weekRange})
-                        </h2>
-                    </div>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-bold transition-colors shadow-sm">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Download PDF
-                    </button>
+                <div className="flex items-center gap-4">
+                    <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+                        Weekly Report ({weekRange})
+                    </h2>
                 </div>
+            }
+            headerActions={
+                <button className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold transition-colors shadow-sm">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download PDF
+                </button>
             }
         >
             <Head title="Weekly Report" />
@@ -64,8 +59,8 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
 
                         {/* Weekly Insights */}
                         <div className="space-y-6">
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Weekly Insights</h3>
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Weekly Insights</h3>
 
                                 {/* Insight 1 */}
                                 <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex gap-4">
@@ -121,5 +116,3 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
         </AuthenticatedLayout>
     );
 }
-
-import { Link } from '@inertiajs/react';

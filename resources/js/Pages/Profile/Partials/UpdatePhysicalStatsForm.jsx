@@ -32,7 +32,7 @@ export default function UpdatePhysicalStatsForm({ className = '' }) {
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Physical Stats & Goals</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Physical Stats & Goals</h2>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Update your physical attributes to recalculate your daily calorie target.
                 </p>
@@ -44,11 +44,11 @@ export default function UpdatePhysicalStatsForm({ className = '' }) {
                 <div>
                     <InputLabel value="Gender" />
                     <div className="flex gap-4 mt-2">
-                        <label className={`flex-1 p-3 border rounded-lg cursor-pointer text-center transition-colors ${data.gender === 'male' ? 'bg-emerald-100 border-emerald-500 text-emerald-700 dark:bg-emerald-900 dark:border-emerald-400 dark:text-emerald-300' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                        <label className={`flex-1 p-3 border rounded-xl cursor-pointer text-center transition-colors ${data.gender === 'male' ? 'bg-emerald-100 border-emerald-500 text-emerald-700 dark:bg-emerald-900 dark:border-emerald-400 dark:text-emerald-300' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
                             <input type="radio" name="gender" value="male" className="hidden" checked={data.gender === 'male'} onChange={() => setData('gender', 'male')} />
                             Male
                         </label>
-                        <label className={`flex-1 p-3 border rounded-lg cursor-pointer text-center transition-colors ${data.gender === 'female' ? 'bg-pink-100 border-pink-500 text-pink-700 dark:bg-pink-900 dark:border-pink-400 dark:text-pink-300' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                        <label className={`flex-1 p-3 border rounded-xl cursor-pointer text-center transition-colors ${data.gender === 'female' ? 'bg-pink-100 border-pink-500 text-pink-700 dark:bg-pink-900 dark:border-pink-400 dark:text-pink-300' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300'}`}>
                             <input type="radio" name="gender" value="female" className="hidden" checked={data.gender === 'female'} onChange={() => setData('gender', 'female')} />
                             Female
                         </label>
