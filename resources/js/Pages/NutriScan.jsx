@@ -100,7 +100,7 @@ export default function NutriScan({ auth, analysis, error }) {
         >
             <Head title="NutriScan AI" />
 
-            <div className="py-12 bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <div className="py-12 min-h-screen">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
                     {/* Header Text */}

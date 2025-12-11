@@ -183,11 +183,9 @@ def predict(image_path, model_path):
         class_idx = predicted_idx.item()
         conf_score = confidence.item() * 100
         
-        # --- CONFIDENCE THRESHOLD ---
-        # Filter out non-food images / unclear images
-        if conf_score < 35:
-            print(json.dumps({'error': 'Gambar tidak jelas atau bukan makanan. Mohon foto lebih dekat.'}))
-            return
+        # --- CONFIDENCE HANDLING ---
+        # Jangan hentikan alur; tetap tampilkan hasil dengan penanda Low Confidence
+        low_confidence = conf_score < 20
         # ----------------------------
         
         class_name = CLASSES[class_idx]
@@ -212,6 +210,8 @@ def predict(image_path, model_path):
         
         # Generate dynamic tags
         tags = [display_name]
+        if low_confidence:
+            tags.append('Low Confidence')
         if nutri['cal'] > 500: tags.append('High Calorie')
         if nutri['prot'] > 20: tags.append('High Protein')
         if nutri['carb'] < 20: tags.append('Low Carb')

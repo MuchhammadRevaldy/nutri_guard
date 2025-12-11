@@ -1,142 +1,101 @@
 import { useState } from 'react';
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
+import { Home, CalendarDays, BarChart3, Settings as SettingsIcon, LogOut as LogOutIcon, Scan, ChefHat } from 'lucide-react';
 import ThemeToggle from '@/Components/ThemeToggle';
+import Modal from '@/Components/Modal';
 
-export default function Authenticated({ user, header, children }) {
-    const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
-
+export default function Authenticated({ user, header, children, headerActions }) {
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-            <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        {/* 1. Logo (Left) */}
-                        <div className="flex items-center">
-                            <Link href="/" className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1 2H8l-1-2H5V5z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">NutriGuard</span>
-                            </Link>
+        <div className="min-h-screen h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
+            <aside className="fixed inset-y-0 left-0 w-64 h-screen bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col justify-between overflow-y-auto">
+                <div>
+                    <Link href={route('profile.edit')} className="p-6 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
+                            <span role="img" aria-label="avatar" className="text-2xl">👨🏻‍🦱</span>
                         </div>
-
-                        {/* 2. Centered Navigation */}
-                        <div className="hidden space-x-8 sm:flex sm:items-center">
-                            <NavLink href={route('dashboard')} active={route().current('dashboard')} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
-                                Dashboard
-                            </NavLink>
-                            <NavLink href="#" active={false} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
-                                Meal Planner
-                            </NavLink>
-                            <NavLink href={route('nutriscan.index')} active={route().current('nutriscan.index')} className={`text-emerald-500 font-bold ${route().current('nutriscan.index') ? 'border-b-2 border-emerald-500' : 'border-none'}`}>
-                                NutriScan AI
-                            </NavLink>
-                            <NavLink href="#" active={false} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
-                                Community
-                            </NavLink>
+                        <div>
+                            <div className="text-sm font-bold text-gray-900 dark:text-white">Hi, {user.name.split(' ')[0]}!</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Welcome back</div>
                         </div>
-
-                        {/* 3. Right Side (Button + Avatar) */}
-                        <div className="hidden sm:flex sm:items-center sm:ms-6 gap-4">
-
-                            {/* Theme Toggle */}
-                            <ThemeToggle />
-
-                            {/* User Avatar & Dropdown */}
-                            <div className="ms-3 relative">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <button type="button" className="flex items-center focus:outline-none transition-transform hover:scale-105">
-                                            <span className="mr-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                {user.name.split(' ')[0]}
-                                            </span>
-                                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
-                                                {/* Placeholder Avatar Face */}
-                                                <span role="img" aria-label="avatar" className="text-2xl">👨🏻‍🦱</span>
-                                            </div>
-                                        </button>
-                                    </Dropdown.Trigger>
-
-                                    <Dropdown.Content>
-                                        <div className="px-4 py-2 text-xs text-gray-400">
-                                            {user.name}
-                                        </div>
-                                        <Dropdown.Link href={route('profile.edit')}>Profile</Dropdown.Link>
-                                        <Dropdown.Link href={route('logout')} method="post" as="button">
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
+                    </Link>
+                    <div className="px-3 space-y-1">
+                        <Link href={route('dashboard')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('dashboard') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                            <Home className="w-5 h-5" />
+                            <span className="font-medium text-sm">Dashboard</span>
+                        </Link>
+                        <Link href={route('nutriscan.index')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('nutriscan.index') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                            <Scan className="w-5 h-5" />
+                            <span className="font-medium text-sm">NutriScan</span>
+                        </Link>
+                        <Link href={route('fitchef.index')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('fitchef.index') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                            <ChefHat className="w-5 h-5" />
+                            <span className="font-medium text-sm">FitChef</span>
+                        </Link>
+                        <Link href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <CalendarDays className="w-5 h-5" />
+                            <span className="font-medium text-sm">Meal Planner</span>
+                        </Link>
+                        <Link href={route('report')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('report') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                            <BarChart3 className="w-5 h-5" />
+                            <span className="font-medium text-sm">Progress</span>
+                        </Link>
+                        <Link href={route('profile.edit')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('profile.edit') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                            <SettingsIcon className="w-5 h-5" />
+                            <span className="font-medium text-sm">Profil Seting</span>
+                        </Link>
+                    </div>
+                </div>
+                <div className="p-4 space-y-3">
+                    <button
+                        type="button"
+                        onClick={() => setShowLogoutConfirm(true)}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                        <LogOutIcon className="w-5 h-5" />
+                        <span className="font-medium text-sm">Logout</span>
+                    </button>
+                </div>
+            </aside>
+            <div className="ml-64 h-screen flex flex-col overflow-y-auto">
+                {header && (
+                    <header className="bg-white dark:bg-gray-800 shadow">
+                        <div className="w-full py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+                            <div>{header}</div>
+                            <div className="flex items-center gap-3">
+                                {headerActions}
+                                <ThemeToggle />
                             </div>
                         </div>
-
-                        {/* Mobile Menu Button (Hamburger) */}
-                        <div className="-me-2 flex items-center sm:hidden">
-                            <button
-                                onClick={() => setShowingNavigationDropdown((previousState) => !previousState)}
-                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none transition duration-150 ease-in-out"
-                            >
-                                <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                    <path
-                                        className={!showingNavigationDropdown ? 'inline-flex' : 'hidden'}
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        className={showingNavigationDropdown ? 'inline-flex' : 'hidden'}
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
+                    </header>
+                )}
+                <main className="w-full px-4 sm:px-6 lg:px-8">{children}</main>
+            </div>
+            <Modal show={showLogoutConfirm} onClose={() => setShowLogoutConfirm(false)} maxWidth="sm">
+                <div className="p-6 text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                        <svg className="h-10 w-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Konfirmasi Logout</h2>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">Anda akan keluar dari sesi. Lanjutkan?</p>
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => router.post(route('logout'))}
+                            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                        >
+                            Logout
+                        </button>
+                        <button
+                            onClick={() => setShowLogoutConfirm(false)}
+                            className="w-full py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-bold rounded-lg transition-colors"
+                        >
+                            Batal
+                        </button>
                     </div>
                 </div>
-
-                {/* Mobile Menu (Responsive) */}
-                <div className={(showingNavigationDropdown ? 'block' : 'hidden') + ' sm:hidden'}>
-                    <div className="pt-2 pb-3 space-y-1">
-                        <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>
-                            Dashboard
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink href="#">Meal Planner</ResponsiveNavLink>
-                        <ResponsiveNavLink href="#" className="text-emerald-500">FitChef AI</ResponsiveNavLink>
-                        <ResponsiveNavLink href="#">Community</ResponsiveNavLink>
-                    </div>
-
-                    <div className="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
-                        <div className="px-4">
-                            <div className="font-medium text-base text-gray-800 dark:text-gray-200">{user.name}</div>
-                            <div className="font-medium text-sm text-gray-500">{user.email}</div>
-                        </div>
-
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>Profile</ResponsiveNavLink>
-                            <ResponsiveNavLink method="post" href={route('logout')} as="button">
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            {header && (
-                <header className="bg-white dark:bg-gray-800 shadow">
-                    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">{header}</div>
-                </header>
-            )}
-
-            <main>{children}</main>
+            </Modal>
         </div>
     );
 }

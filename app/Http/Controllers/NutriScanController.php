@@ -27,19 +27,16 @@ class NutriScanController extends Controller
         $absolutePath = storage_path('app/public/' . $path);
 
         // ATTEMPT TO RUN REAL PYTHON ANALYZE
-        // Hardcoded absolute path based on environment discovery
-        $pythonExec = 'C:\Users\Sandy\AppData\Local\Programs\Python\Python310\python.exe';
-
+        $pythonExec = config('services.nutriscan.python_path', 'python');
         $pythonScript = base_path('services/python/predict_cli.py');
 
-        // Fix: Explicitly pass system environment variables to the process
-        // This solves the "_Py_HashRandomization_Init" error on Windows
+        // Pass system environment variables to the process (Windows safety)
         $process = Process::env([
             'SYSTEMROOT' => getenv('SYSTEMROOT'),
             'PATH' => getenv('PATH'),
             'TEMP' => getenv('TEMP'),
             'TMP' => getenv('TMP'),
-        ])->run("\"{$pythonExec}\" \"{$pythonScript}\" \"{$absolutePath}\"");
+        ])->run([$pythonExec, $pythonScript, $absolutePath]);
 
         if ($process->successful()) {
             $output = $process->output();
@@ -50,11 +47,8 @@ class NutriScanController extends Controller
                 return redirect()->route('nutriscan.index')->with('analysis', $aiData);
             }
         }
-
-        // Fallback for ANY failure (process failed, json error, or logic error)
-        return redirect()->route('nutriscan.index')->with('error', 'Gambar tidak jelas, coba lagi.');
     }
-
+    
     public function storeLog(Request $request)
     {
         $data = $request->validate([
