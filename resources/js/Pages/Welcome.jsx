@@ -1,14 +1,33 @@
 import { Link, Head } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import ThemeToggle from '@/Components/ThemeToggle';
 import PrimaryButton from '@/Components/PrimaryButton';
 import heroImage from '@/images/hero.png';
 
 export default function Welcome({ auth }) {
+    const [activeSection, setActiveSection] = useState('features');
+
+    useEffect(() => {
+        const ids = ['features', 'about'];
+        const observer = new IntersectionObserver(
+            entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) setActiveSection(entry.target.id);
+                });
+            },
+            { threshold: 0.2, rootMargin: '0px 0px -60% 0px' }
+        );
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el);
+        });
+        return () => observer.disconnect();
+    }, []);
     return (
         <>
             <Head title="Welcome to NutriGuard" />
 
-            <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
                 <nav className="border-b border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex justify-between h-16 items-center">
@@ -24,19 +43,33 @@ export default function Welcome({ auth }) {
                             </div>
 
                             <div className="hidden md:flex space-x-8">
-                                {['Features', 'Pricing', 'About'].map((item) => (
-                                    <a key={item} href={`#${item.toLowerCase()}`} className="text-sm font-medium text-gray-500 hover:text-emerald-500 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors">
-                                        {item}
-                                    </a>
-                                ))}
+                                {['Features', 'About'].map((item) => {
+                                    const id = item.toLowerCase();
+                                    const active = activeSection === id;
+                                    return (
+                                        <a
+                                            key={item}
+                                            href={`#${id}`}
+                                            className={`inline-block pb-1 text-sm font-medium border-b-2 transition-colors ${
+                                                active
+                                                    ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500'
+                                                    : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-emerald-500 dark:hover:text-emerald-400'
+                                            }`}
+                                        >
+                                            {item}
+                                        </a>
+                                    );
+                                })}
                             </div>
 
                             <div className="flex items-center space-x-4">
-                                <ThemeToggle />
                                 {auth.user ? (
-                                    <Link href={route('dashboard')}>
-                                        <PrimaryButton>Dashboard</PrimaryButton>
-                                    </Link>
+                                    <>
+                                        <Link href={route('dashboard')}>
+                                            <PrimaryButton>Dashboard</PrimaryButton>
+                                        </Link>
+                                        <ThemeToggle />
+                                    </>
                                 ) : (
                                     <>
                                         <Link href={route('login')} className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors">
@@ -45,6 +78,7 @@ export default function Welcome({ auth }) {
                                         <Link href={route('register')}>
                                             <PrimaryButton>Get Started</PrimaryButton>
                                         </Link>
+                                        <ThemeToggle />
                                     </>
                                 )}
                             </div>
@@ -87,7 +121,7 @@ export default function Welcome({ auth }) {
                     </div>
                 </main>
 
-                <section id="features" className="py-20 bg-gray-50 dark:bg-gray-800/50">
+                <section id="features" className="py-20">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center max-w-3xl mx-auto mb-16">
                             <h2 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
@@ -139,16 +173,99 @@ export default function Welcome({ auth }) {
                     </div>
                 </section>
 
-                <footer className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 py-12">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-gray-400 text-sm">
-                        <div className="flex justify-center space-x-6 mb-8">
-                            {['Company', 'Resources', 'Legal', 'Terms of Service', 'Privacy Policy', 'Contact Us'].map((item) => (
-                                <a key={item} href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">
-                                    {item}
-                                </a>
-                            ))}
+                <section id="about" className="py-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center max-w-3xl mx-auto mb-12">
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">About NutriGuard</h2>
+                            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
+                                An AI-powered companion that helps families scan meals, create healthier recipes,
+                                and track daily nutrition with clear weekly insights.
+                            </p>
                         </div>
-                        <p>&copy; 2024 NutriGuard. All rights reserved.</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+                                <div className="text-lg font-bold text-gray-900 dark:text-white">What it does</div>
+                                <ul className="mt-4 space-y-3 text-gray-600 dark:text-gray-300">
+                                    <li><span className="font-semibold text-gray-900 dark:text-white">NutriScan</span>: scan meals to estimate calories and nutrients.</li>
+                                    <li><span className="font-semibold text-gray-900 dark:text-white">FitChef</span>: generate personalized, healthy recipes.</li>
+                                    <li><span className="font-semibold text-gray-900 dark:text-white">Family Dashboard</span>: monitor daily targets and progress.</li>
+                                    <li><span className="font-semibold text-gray-900 dark:text-white">Reports & Insights</span>: review trends and export PDFs.</li>
+                                </ul>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+                                <div className="text-lg font-bold text-gray-900 dark:text-white">Why we built it</div>
+                                <p className="mt-4 text-gray-600 dark:text-gray-300 leading-relaxed">
+                                    We want to make healthy eating practical for families by unifying scanning,
+                                    recipe generation, daily monitoring, and actionable reports.
+                                </p>
+                                <ul className="mt-4 space-y-2 text-gray-600 dark:text-gray-300">
+                                    <li>Centralize nutrition tracking for the whole family.</li>
+                                    <li>Make healthy cooking easier with AI suggestions.</li>
+                                    <li>Turn daily data into clear, shareable insights.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <footer className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+                            <div className="text-center">
+                                <div className="flex items-center justify-center gap-3">
+                                    <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
+                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">NutriGuard</span>
+                                </div>
+                                <p className="mt-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs mx-auto">
+                                    AI-powered nutrition companion to help families scan meals, craft healthier recipes, and track daily intake.
+                                </p>
+                            </div>
+
+                            <div>
+                                <div className="text-sm font-semibold text-gray-900 dark:text-white">Explore</div>
+                                <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <li><a href="#features" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Features</a></li>
+                                    <li><a href="#about" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">About</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <div className="text-sm font-semibold text-gray-900 dark:text-white">Products</div>
+                                <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <li>NutriScan AI</li>
+                                    <li>FitChef AI</li>
+                                    <li>Family Dashboard</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <div className="text-sm font-semibold text-gray-900 dark:text-white">Account</div>
+                                <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                    {auth.user ? (
+                                        <li>
+                                            <Link href={route('dashboard')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Dashboard</Link>
+                                        </li>
+                                    ) : (
+                                        <>
+                                            <li>
+                                                <Link href={route('login')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Log in</Link>
+                                            </li>
+                                            <li>
+                                                <Link href={route('register')} className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Get Started</Link>
+                                            </li>
+                                        </>
+                                    )}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800 text-center">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">&copy; 2025 NutriGuard. All rights reserved.</p>
+                        </div>
                     </div>
                 </footer>
             </div>
