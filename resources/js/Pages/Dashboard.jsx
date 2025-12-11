@@ -19,11 +19,48 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
     const [showManageModal, setShowManageModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+    // Recommended meals list for random suggestion
+    const recommendedMeals = [
+        {
+            name: 'Grilled Chicken Salad',
+            calories: 450,
+            protein: 40,
+            image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=1200&auto=format&fit=crop'
+        },
+        {
+            name: 'Tofu Veggie Bowl',
+            calories: 420,
+            protein: 32,
+            image: 'https://images.unsplash.com/photo-1512621776951-4471f7d3e8b2?q=80&w=1200&auto=format&fit=crop'
+        },
+        {
+            name: 'Salmon Quinoa Plate',
+            calories: 520,
+            protein: 45,
+            image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop'
+        },
+        {
+            name: 'Beef Stir Fry',
+            calories: 560,
+            protein: 42,
+            image: 'https://images.unsplash.com/photo-1543352634-8732ed2b31f5?q=80&w=1200&auto=format&fit=crop'
+        }
+    ];
+
+    const [recommended, setRecommended] = useState(recommendedMeals[0]);
+    const hasLogs = todaysLogs && todaysLogs.length > 0;
+
     useEffect(() => {
         if (success) {
             setShowSuccessModal(true);
         }
     }, [success]);
+
+    // Randomize today's recommended meal on load
+    useEffect(() => {
+        const idx = Math.floor(Math.random() * recommendedMeals.length);
+        setRecommended(recommendedMeals[idx]);
+    }, []);
 
     return (
         <AuthenticatedLayout
@@ -32,8 +69,8 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
         >
             <Head title="Dashboard" />
 
-            <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+            <div className="py-8">
+                <div className="px-6 space-y-8">
 
                     {/* 1. Family Monitoring Section */}
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl p-6 relative">
@@ -145,14 +182,14 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* 5. Today's Log */}
-                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                        <div className={`lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm ${hasLogs ? '' : 'min-h-64'}`}>
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Today's Log</h3>
                                 <div className="text-sm font-bold text-gray-900 dark:text-white">{stats.calories} <span className="text-gray-400 font-normal">/ {stats.goal_calories}</span> kcal</div>
                             </div>
 
-                            <div className="space-y-2">
-                                {todaysLogs.length > 0 ? (
+                            <div className={`${hasLogs ? 'space-y-2' : 'space-y-2 h-full flex items-center justify-center'}`}>
+                                {hasLogs ? (
                                     todaysLogs.map((log) => (
                                         <FoodLogItem
                                             key={log.id}
@@ -162,27 +199,29 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
                                         />
                                     ))
                                 ) : (
-                                    <div className="text-center py-8 text-gray-500">No meals logged today yet.</div>
+                                    <div className="text-center text-gray-500">No meals logged today yet.</div>
                                 )}
                             </div>
                         </div>
 
                         {/* 6. Recommended Meal */}
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm flex flex-col">
-                            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Today's Recommended Meal</h3>
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Today's Recommended Meal</h3>
 
-                            <div className="flex-1 rounded-xl bg-gray-100 dark:bg-gray-700 overflow-hidden relative group">
-                                {/* Placeholder Image */}
-                                <div className="absolute inset-0 bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-4xl">🥗</div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
-                                    <h4 className="text-white font-bold text-lg">Grilled Chicken Salad</h4>
-                                    <p className="text-gray-200 text-sm">450 kcal • 40g Protein</p>
-                                </div>
-                            </div>
+                            <img
+                                src={recommended.image}
+                                alt={recommended.name}
+                                className="w-full h-40 md:h-44 object-cover rounded-xl mb-4 shadow-sm"
+                            />
+                            <div className="text-lg font-bold text-gray-900 dark:text-white">{recommended.name}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{recommended.calories} kcal • {recommended.protein}g Protein</div>
 
-                            <button className="mt-4 w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors">
+                            <Link
+                                href={route('fitchef.index')}
+                                className="mt-4 block w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full transition-colors text-center"
+                            >
                                 View Recipe
-                            </button>
+                            </Link>
                         </div>
                     </div>
 
