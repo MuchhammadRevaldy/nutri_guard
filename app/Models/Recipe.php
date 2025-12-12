@@ -10,10 +10,17 @@ class Recipe extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'description',
+        'title',
         'calories',
         'protein',
-        'image_path',
+        'time',
+        'image',
+        'ingredients',
+        'steps',
+    ];
+
+    protected $casts = [
+        'ingredients' => 'array',
+        'steps' => 'array',
     ];
 }
