@@ -179,6 +179,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/fitchef', [\App\Http\Controllers\FitChefController::class, 'index'])->name('fitchef.index');
     Route::post('/fitchef/generate', [\App\Http\Controllers\FitChefController::class, 'generate'])->name('fitchef.generate');
 
+    Route::get('/meal-planner', function () {
+        return Inertia::render('MealPlanner');
+    })->name('meal-planner');
+
 
     // Onboarding / Setup Profile
     Route::get('/setup-profile', function () {
