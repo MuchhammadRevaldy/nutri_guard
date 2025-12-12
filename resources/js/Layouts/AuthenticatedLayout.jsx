@@ -28,11 +28,11 @@ export default function Authenticated({ user, header, children, headerActions })
                             <Scan className="w-5 h-5" />
                             <span className="font-medium text-sm">NutriScan</span>
                         </Link>
-                        <Link href={route('fitchef.index')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('fitchef.index') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                        <Link href="/fitchef" className={`flex items-center gap-3 px-3 py-2 rounded-lg ${window.location.pathname.startsWith('/fitchef') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                             <ChefHat className="w-5 h-5" />
                             <span className="font-medium text-sm">FitChef</span>
                         </Link>
-                        <Link href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <Link href="/meal-planner" className={`flex items-center gap-3 px-3 py-2 rounded-lg ${window.location.pathname === '/meal-planner' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                             <CalendarDays className="w-5 h-5" />
                             <span className="font-medium text-sm">Meal Planner</span>
                         </Link>
