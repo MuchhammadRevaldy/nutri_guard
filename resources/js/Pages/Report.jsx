@@ -63,17 +63,32 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Weekly Insights</h3>
 
                                 {/* Insight 1 */}
-                                <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex gap-4">
-                                    <div className="text-emerald-500 mt-1">
-                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-emerald-700 dark:text-emerald-400">Great job!</div>
-                                        <div className="text-sm text-emerald-600 dark:text-emerald-300">
-                                            You met your protein goal on {insights.daysMetProtein} out of {insights.totalDays} days.
+                                {/* Insight 1 */}
+                                {(() => {
+                                    const isPerfect = insights.daysMetProtein === 7;
+                                    return (
+                                        <div className={`mb-4 p-4 rounded-xl flex gap-4 ${isPerfect
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                                            : 'bg-amber-50 dark:bg-amber-900/20'
+                                            }`}>
+                                            <div className={`mt-1 ${isPerfect ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                {isPerfect ? (
+                                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                                ) : (
+                                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className={`font-bold ${isPerfect ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                                                    {isPerfect ? 'Great job!' : 'Keep going!'}
+                                                </div>
+                                                <div className={`text-sm ${isPerfect ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}`}>
+                                                    You met your protein goal on {insights.daysMetProtein} out of {insights.totalDays} days.
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    );
+                                })()}
 
                                 {/* Insight 2 */}
                                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex gap-4">

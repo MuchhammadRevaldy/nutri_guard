@@ -211,38 +211,75 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                         </div>
                     </div>
 
-                    {/* 4. Weekly Nutrition Log (Simplified List) */}
+                    {/* 4. Weekly Nutrition Log (Dropdown Day-by-Day) */}
                     <div>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg">Recent Meals</h3>
                         </div>
-                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
-                            {/* Group by Day logic is complex to render flat, so we just flatten for list */}
-                            {Object.entries(weeklyLogs).slice(0, 3).map(([day, logs]) => (
-                                <div key={day} className="p-4 border-b border-gray-200 dark:border-gray-800 last:border-0">
-                                    <div className="text-sm font-bold text-gray-500 mb-3 uppercase">{day}</div>
-                                    <div className="space-y-3">
-                                        {logs.map(log => (
-                                            <div key={log.id} className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="text-gray-400 text-sm">{new Date(log.eaten_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                                    <div className="font-medium">{log.name}</div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    {log.tags && log.tags.map((tag, i) => (
-                                                        <span key={i} className={`text-[10px] px-2 py-0.5 rounded ${tag.includes('Iron') ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
-                                                            tag.includes('Protein') ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' :
-                                                                'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                                                            }`}>
-                                                            {tag}
-                                                        </span>
+                        <div className="space-y-3">
+                            {/* Iterate over last 7 days logically to ensure order */}
+                            {Array.from({ length: 7 }).map((_, i) => {
+                                const date = new Date();
+                                date.setDate(date.getDate() - i);
+                                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue...
+                                const logs = weeklyLogs[dayName] || [];
+
+                                return (
+                                    <details key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl group" open={i === 0}>
+                                        <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none">
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${logs.length > 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                    {dayName}
+                                                </span>
+                                                <span className="font-medium text-gray-900 dark:text-white">
+                                                    {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-sm text-gray-500">
+                                                <span>{logs.length} Meals</span>
+                                                <svg className="w-5 h-5 transform group-open:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </summary>
+                                        <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+                                            {logs.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {logs.map(log => (
+                                                        <div key={log.id} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="text-gray-400 text-xs font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                                                    {new Date(log.eaten_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-medium text-sm text-gray-900 dark:text-white">{log.name}</div>
+                                                                    <div className="text-xs text-gray-500">
+                                                                        {Math.round(log.calories)} kcal • {log.protein}g P • {log.carbs}g C • {log.fat}g F
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1 justify-end max-w-[40%]">
+                                                                {log.tags && log.tags.map((tag, tIdx) => (
+                                                                    <span key={tIdx} className={`text-[10px] px-1.5 py-0.5 rounded truncate max-w-full ${tag.includes('Iron') ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
+                                                                        tag.includes('Protein') ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' :
+                                                                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                                                        }`}>
+                                                                        {tag}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     ))}
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
+                                            ) : (
+                                                <div className="text-center py-4 text-sm text-gray-400 italic">
+                                                    No meals recorded for this day.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </details>
+                                );
+                            })}
                         </div>
                     </div>
 

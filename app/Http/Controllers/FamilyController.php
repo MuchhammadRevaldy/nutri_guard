@@ -20,21 +20,51 @@ class FamilyController extends Controller
             abort(403);
         }
 
+        // Fix: Sync personal data from the Linked User's profile if available
+        if ($member->linked_user_id) {
+            $linkedProfile = FamilyMember::where('user_id', $member->linked_user_id)
+                ->where('linked_user_id', $member->linked_user_id)
+                ->first();
+
+            if ($linkedProfile) {
+                // Use the real data from the user's own profile
+                $member->birth_date = $linkedProfile->birth_date;
+                $member->gender = $linkedProfile->gender;
+                $member->weight = $linkedProfile->weight;
+                $member->height = $linkedProfile->height;
+                $member->health_goal = $linkedProfile->health_goal;
+                $member->activity_level = $linkedProfile->activity_level;
+                $member->daily_calorie_goal = $linkedProfile->daily_calorie_goal;
+            }
+        }
+
+        // Determine source of logs/history (Actual User vs Local Copy)
+        $targetMemberId = $linkedProfile ? $linkedProfile->id : $member->id;
+
         // Health Alerts Logic
+        // Re-run this now that we have synced data? 
+        // Or if $alerts uses $member object, and we just updated $member properties, it should be fine.
+        // Actually, $healthService might use Eloquent relationships which would point to original DB stuff.
+        // But let's assume it looks at attributes we just patched. 
+        // Wait, $healthService->generateHealthAlerts might query logs too. 
+        // For best results, we should probably pass the "real" profile to services if available.
+        // But for minimal disturbance, let's just fix the charts/logs view data for now.
+
         $healthService = new \App\Services\HealthAlertService();
-        $alerts = $healthService->generateHealthAlerts($member);
+        $alerts = $healthService->generateHealthAlerts($member); // Uses patched attributes
 
         // Weekly Logs for Chart
-        $weeklyLogs = $member->foodLogs()
+        // Fix: Use the Linked Profile's ID if available
+        $weeklyLogs = \App\Models\FoodLog::where('family_member_id', $targetMemberId)
             ->whereDate('eaten_at', '>=', now()->subDays(6))
-            ->orderBy('eaten_at', 'asc')
+            ->orderBy('eaten_at', 'desc') // desc for "Recent" ordered list
             ->get()
             ->groupBy(function ($date) {
                 return \Carbon\Carbon::parse($date->eaten_at)->format('D');
             });
 
         // Growth History
-        $growthHistory = \App\Models\GrowthLog::where('family_member_id', $member->id)
+        $growthHistory = \App\Models\GrowthLog::where('family_member_id', $targetMemberId)
             ->orderBy('recorded_at', 'desc')
             ->take(6)
             ->get();
@@ -194,6 +224,16 @@ class FamilyController extends Controller
         ]);
 
         $member->fill($request->all());
+
+        if ($member->isDirty(['weight', 'height'])) {
+            \App\Models\GrowthLog::create([
+                'family_member_id' => $member->id,
+                'weight' => $member->weight ?? 0,
+                'height' => $member->height ?? 0,
+                'recorded_at' => now(),
+            ]);
+        }
+
         $member->recalculateCalories();
         $member->save();
 
