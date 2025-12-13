@@ -6,23 +6,46 @@ import Modal from '@/Components/Modal';
 
 export default function Authenticated({ user, header, children, headerActions }) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     return (
         <div className="min-h-screen h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
-            <aside className="fixed inset-y-0 left-0 w-64 h-screen bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col justify-between overflow-y-auto">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 z-20 bg-black/50 md:hidden backdrop-blur-sm transition-opacity"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col justify-between overflow-y-auto transform transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}>
                 <div>
-                    <Link href={route('profile.edit')} className="p-6 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
-                            {user.avatar ? (
-                                <img src={`/storage/${user.avatar}`} alt="avatar" className="w-full h-full object-cover" />
-                            ) : (
-                                <span role="img" aria-label="avatar" className="text-2xl">👨🏻‍🦱</span>
-                            )}
-                        </div>
-                        <div>
-                            <div className="text-sm font-bold text-gray-900 dark:text-white">Hi, {user.name.split(' ')[0]}!</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Welcome back</div>
-                        </div>
-                    </Link>
+                    <div className="flex items-center justify-between p-4 md:p-6">
+                        <Link href={route('profile.edit')} className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
+                                {user.avatar ? (
+                                    <img src={`/storage/${user.avatar}`} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span role="img" aria-label="avatar" className="text-2xl">👨🏻‍🦱</span>
+                                )}
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-gray-900 dark:text-white">Hi, {user.name.split(' ')[0]}!</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Welcome back</div>
+                            </div>
+                        </Link>
+                        {/* Close button for mobile */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden"
+                        >
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
                     <div className="px-3 space-y-1">
                         <Link href={route('dashboard')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('dashboard') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                             <Home className="w-5 h-5" />
@@ -72,11 +95,22 @@ export default function Authenticated({ user, header, children, headerActions })
                     </button>
                 </div>
             </aside>
-            <div className="ml-64 h-screen flex flex-col overflow-y-auto">
+            <div className="md:ml-64 h-screen flex flex-col overflow-y-auto">
                 {header && (
-                    <header className="bg-white dark:bg-gray-800 shadow">
+                    <header className="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
                         <div className="w-full py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-                            <div>{header}</div>
+                            <div className="flex items-center gap-4">
+                                {/* Hamburger Button */}
+                                <button
+                                    onClick={() => setIsMobileMenuOpen(true)}
+                                    className="p-2 -ml-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden"
+                                >
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                    </svg>
+                                </button>
+                                <div>{header}</div>
+                            </div>
                             <div className="flex items-center gap-3">
                                 {headerActions}
                                 {/* Notification Icon */}

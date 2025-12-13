@@ -12,6 +12,7 @@ export default function NutriScan({ auth, analysis, error }) {
     const [preview, setPreview] = useState(analysis ? analysis.image_url : null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [showError, setShowError] = useState(false);
+    const [facingMode, setFacingMode] = useState('environment');
 
     // Auto-show error if passed from backend
     useEffect(() => {
@@ -46,7 +47,9 @@ export default function NutriScan({ auth, analysis, error }) {
     const startCamera = async () => {
         setIsCameraOpen(true);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: facingMode }
+            });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
             }
@@ -57,13 +60,35 @@ export default function NutriScan({ auth, analysis, error }) {
         }
     };
 
-    const stopCamera = () => {
+    const stopStreamOnly = () => {
         const stream = videoRef.current?.srcObject;
         if (stream) {
             const tracks = stream.getTracks();
             tracks.forEach(track => track.stop());
         }
+    };
+
+    const stopCamera = () => {
+        stopStreamOnly();
         setIsCameraOpen(false);
+    };
+
+    const switchCamera = async () => {
+        stopStreamOnly();
+        const newMode = facingMode === 'environment' ? 'user' : 'environment';
+        setFacingMode(newMode);
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: newMode }
+            });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+        } catch (err) {
+            console.error("Error switching camera:", err);
+            alert("Could not switch camera.");
+        }
     };
 
     const capturePhoto = () => {
@@ -100,7 +125,7 @@ export default function NutriScan({ auth, analysis, error }) {
         >
             <Head title="NutriScan AI" />
 
-            <div className="py-12 min-h-screen">
+            <div className="py-12 min-h-screen px-4 sm:px-0">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
                     {/* Header Text */}
@@ -114,6 +139,17 @@ export default function NutriScan({ auth, analysis, error }) {
                         <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col items-center justify-center p-4">
                             <div className="relative w-full max-w-2xl bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-700">
                                 <video ref={videoRef} autoPlay playsInline className="w-full h-auto"></video>
+
+                                {/* Flip Camera Button */}
+                                <button
+                                    onClick={switchCamera}
+                                    className="absolute top-4 right-4 bg-black/50 p-3 rounded-full text-white backdrop-blur-sm hover:bg-black/70 transition-all"
+                                >
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+
                                 <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-6">
                                     <button
                                         onClick={stopCamera}
@@ -136,7 +172,7 @@ export default function NutriScan({ auth, analysis, error }) {
                     {/* Upload Section */}
                     {!result ? (
                         <div className="max-w-3xl mx-auto">
-                            <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-700 p-12 text-center transition-all hover:border-emerald-500 dark:hover:border-emerald-500 group relative">
+                            <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-700 p-6 md:p-12 text-center transition-all hover:border-emerald-500 dark:hover:border-emerald-500 group relative">
 
                                 {preview ? (
                                     <div className="space-y-6">
@@ -211,7 +247,7 @@ export default function NutriScan({ auth, analysis, error }) {
                         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden max-w-5xl mx-auto flex flex-col md:flex-row animate-fade-in-up">
                             {/* Image Side */}
                             <div className="md:w-1/2 relative bg-gray-100 dark:bg-gray-900">
-                                <img src={result.image_url || preview} alt={result.food_name} className="w-full h-full object-cover min-h-[400px]" />
+                                <img src={result.image_url || preview} alt={result.food_name} className="w-full h-64 md:h-full object-cover md:min-h-[400px]" />
                                 <button
                                     onClick={() => window.location.reload()} // Simple reset
                                     className="absolute top-4 left-4 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-2 rounded-full transition-colors"
