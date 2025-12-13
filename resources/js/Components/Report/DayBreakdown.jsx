@@ -7,7 +7,7 @@ export default function DayBreakdown({ day }) {
         <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-0">
             {/* Header / Summary Row */}
             <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex items-center gap-4 w-full">

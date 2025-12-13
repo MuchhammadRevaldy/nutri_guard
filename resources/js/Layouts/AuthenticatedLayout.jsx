@@ -12,7 +12,11 @@ export default function Authenticated({ user, header, children, headerActions })
                 <div>
                     <Link href={route('profile.edit')} className="p-6 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center overflow-hidden border-2 border-white dark:border-gray-700 shadow-sm">
-                            <span role="img" aria-label="avatar" className="text-2xl">👨🏻‍🦱</span>
+                            {user.avatar ? (
+                                <img src={`/storage/${user.avatar}`} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                <span role="img" aria-label="avatar" className="text-2xl">👨🏻‍🦱</span>
+                            )}
                         </div>
                         <div>
                             <div className="text-sm font-bold text-gray-900 dark:text-white">Hi, {user.name.split(' ')[0]}!</div>
