@@ -9,6 +9,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import InviteMemberModal from '@/Components/Modals/InviteMemberModal';
 import ManageMembersModal from '@/Components/Modals/ManageMembersModal';
 import Modal from '@/Components/Modal';
+import RevealOnScroll from '@/Components/RevealOnScroll';
 import recommendedMealsData from '@/data/recommendedMeals.json';
 
 export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], dailyStats, weeklyChartData, success }) {
@@ -57,7 +58,8 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                 <div className="px-4 sm:px-6 space-y-8">
 
                     {/* 1. Family Monitoring Section */}
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl p-6 relative">
+                    {/* 1. Family Monitoring Section */}
+                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl p-6 relative animate-fade-in-up">
                         {/* Header with Settings Button */}
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">Family Monitoring</h3>
@@ -104,7 +106,8 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                     </div>
 
                     {/* 2. Action Buttons */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* 2. Action Buttons */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up animation-delay-200">
                         <Link href={route('nutriscan.index')} className="flex items-center justify-center gap-3 p-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-[1.02]">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -129,7 +132,8 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* 3. Weekly Trends Chart */}
-                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm relative">
+                        {/* 3. Weekly Trends Chart */}
+                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm relative animate-fade-in-up animation-delay-400">
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Weekly Trends</h3>
@@ -143,7 +147,8 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                         </div>
 
                         {/* 4. Macro Nutrients */}
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm space-y-6">
+                        {/* 4. Macro Nutrients */}
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm space-y-6 animate-fade-in-up animation-delay-400">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Protein</div>
@@ -170,7 +175,8 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* 5. Today's Log */}
-                        <div className={`lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm ${hasLogs ? '' : 'min-h-64'}`}>
+                        {/* 5. Today's Log */}
+                        <RevealOnScroll className={`lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm ${hasLogs ? '' : 'min-h-64'}`}>
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Today's Log</h3>
                                 <div className="text-sm font-bold text-gray-900 dark:text-white">{stats.calories} <span className="text-gray-400 font-normal">/ {stats.goal_calories}</span> kcal</div>
@@ -190,10 +196,11 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                                     <div className="text-center text-gray-500">No meals logged today yet.</div>
                                 )}
                             </div>
-                        </div>
+                        </RevealOnScroll>
 
                         {/* 6. Recommended Meal */}
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-emerald-500/30 transition-all duration-300">
+                        {/* 6. Recommended Meal */}
+                        <RevealOnScroll delay={200} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-emerald-500/30 transition-all duration-300">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-gray-400 text-sm font-medium">Today's Recommended Meal</h3>
                                 <button
@@ -229,7 +236,7 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                             >
                                 View Recipe
                             </button>
-                        </div>
+                        </RevealOnScroll>
                     </div>
 
                 </div>
@@ -318,6 +325,6 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                     </div>
                 </Modal>
             </div>
-        </AuthenticatedLayout>
+        </AuthenticatedLayout >
     );
 }

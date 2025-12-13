@@ -134,7 +134,7 @@ export default function MealPlanner({ auth }) {
                 <div className="flex-1 flex flex-col gap-4 min-w-0 h-full">
 
                     {/* Top Stats Cards */}
-                    <div className="shrink-0 grid grid-cols-2 gap-4 h-32">
+                    <div className="shrink-0 grid grid-cols-2 gap-4 h-32 animate-fade-in-up">
                         {/* Protein Score */}
                         <div className="bg-white dark:bg-gray-800 rounded-[1.5rem] p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center h-full relative overflow-hidden group">
                             <div className="absolute right-0 bottom-0 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -163,7 +163,7 @@ export default function MealPlanner({ auth }) {
                     </div>
 
                     {/* Weekly Schedule Grid */}
-                    <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 p-3 flex flex-col shadow-sm">
+                    <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 p-3 flex flex-col shadow-sm animate-fade-in-up animation-delay-200">
 
                         <div className="flex-1 overflow-x-auto custom-scrollbar flex items-stretch pb-1">
                             <div className="flex gap-3 min-w-max h-full">
@@ -235,7 +235,7 @@ export default function MealPlanner({ auth }) {
                 </div>
 
                 {/* RIGHT SIDEBAR - Budget Growth Boosters */}
-                <div className="w-[18rem] shrink-0 h-full bg-white dark:bg-gray-800 rounded-[1.5rem] p-5 shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col">
+                <div className="w-[18rem] shrink-0 h-full bg-white dark:bg-gray-800 rounded-[1.5rem] p-5 shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col animate-fade-in-up animation-delay-400">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <Zap className="w-4 h-4 text-emerald-500" />
                         Budget Boosters

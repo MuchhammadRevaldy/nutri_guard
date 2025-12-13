@@ -129,7 +129,7 @@ export default function NutriScan({ auth, analysis, error }) {
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
                     {/* Header Text */}
-                    <div className="text-center space-y-2">
+                    <div className="text-center space-y-2 animate-fade-in-up">
                         <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">NutriScan AI</h1>
                         <p className="text-gray-500 dark:text-gray-400 text-lg">Upload a photo to get an instant nutritional analysis for your family.</p>
                     </div>
@@ -172,7 +172,7 @@ export default function NutriScan({ auth, analysis, error }) {
                     {/* Upload Section */}
                     {!result ? (
                         <div className="max-w-3xl mx-auto">
-                            <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-700 p-6 md:p-12 text-center transition-all hover:border-emerald-500 dark:hover:border-emerald-500 group relative">
+                            <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-700 p-6 md:p-12 text-center transition-all hover:border-emerald-500 dark:hover:border-emerald-500 group relative animate-fade-in-up animation-delay-200">
 
                                 {preview ? (
                                     <div className="space-y-6">
@@ -244,7 +244,7 @@ export default function NutriScan({ auth, analysis, error }) {
                         </div>
                     ) : (
                         /* Result Card */
-                        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden max-w-5xl mx-auto flex flex-col md:flex-row animate-fade-in-up">
+                        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden max-w-5xl mx-auto flex flex-col md:flex-row animate-fade-in-up animation-delay-200">
                             {/* Image Side */}
                             <div className="md:w-1/2 relative bg-gray-100 dark:bg-gray-900">
                                 <img src={result.image_url || preview} alt={result.food_name} className="w-full h-64 md:h-full object-cover md:min-h-[400px]" />

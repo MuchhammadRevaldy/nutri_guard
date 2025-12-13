@@ -41,7 +41,7 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                     {/* Top Section: Chart & Insights */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Weekly Average Chart Card */}
-                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
+                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm animate-fade-in-up">
                             <div className="mb-6">
                                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Calorie Intake</div>
                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
@@ -57,8 +57,7 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                             </div>
                         </div>
 
-                        {/* Weekly Insights */}
-                        <div className="space-y-6">
+                        <div className="space-y-6 animate-fade-in-up animation-delay-200">
                             <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Weekly Insights</h3>
 
@@ -109,7 +108,7 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                     {/* Bottom Section: Breakdown + Top Foods */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Left: Day Breakdown List */}
-                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-400">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Day-by-Day Breakdown</h3>
                             </div>
@@ -121,7 +120,7 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                         </div>
 
                         {/* Right: Top Foods */}
-                        <div>
+                        <div className="animate-fade-in-up animation-delay-400">
                             <TopFoodsList foods={topFoods} />
                         </div>
                     </div>
