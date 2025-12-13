@@ -40,8 +40,10 @@ Route::get('/dashboard', function () {
     }
 
     // 2. Focused Member (Default to "You" or first)
-    // For MVP, simply getting "You" logs or the first user's logs
-    $myself = $familyMembers->where('name', 'You')->first() ?? $familyMembers->first();
+    // Priority: 1. linked_user_id = auth->id, 2. name = 'You', 3. First record
+    $myself = $familyMembers->where('linked_user_id', $user->id)->first()
+        ?? $familyMembers->where('name', 'You')->first()
+        ?? $familyMembers->first();
 
     // 3. Today's Logs
     $todaysLogs = \App\Models\FoodLog::where('family_member_id', $myself?->id)
@@ -86,7 +88,9 @@ Route::get('/dashboard', function () {
 
 Route::get('/report', function () {
     $user = auth()->user();
-    $myself = $user->familyMembers->where('name', 'You')->first();
+    $myself = $user->familyMembers->where('linked_user_id', $user->id)->first()
+        ?? $user->familyMembers->where('name', 'You')->first()
+        ?? $user->familyMembers->first();
 
     // 1. Weekly Data (Mon-Sun)
     // We assume the report is for the "current week" of the logs or last 7 days.
@@ -167,6 +171,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/family/invite', [\App\Http\Controllers\FamilyController::class, 'invite'])->name('family.invite');
     Route::get('/family/accept/{token}', [\App\Http\Controllers\FamilyController::class, 'accept'])->name('family.accept');
+    Route::get('/invitations', [\App\Http\Controllers\FamilyController::class, 'invitations'])->name('invitations.index');
+    Route::get('/family/{member}', [\App\Http\Controllers\FamilyController::class, 'show'])->name('family.show');
     Route::patch('/family/{id}', [\App\Http\Controllers\FamilyController::class, 'update'])->name('family.update');
     Route::delete('/family/{id}', [\App\Http\Controllers\FamilyController::class, 'destroy'])->name('family.destroy');
 
@@ -225,6 +231,57 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('dashboard');
 
     })->name('profile.setup.store');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/chat', [\App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/{user}', [\App\Http\Controllers\ChatController::class, 'show'])->name('chat.show');
+    Route::post('/chat', [\App\Http\Controllers\ChatController::class, 'store'])->name('chat.store');
+    Route::post('/chat/{user}/read', [\App\Http\Controllers\ChatController::class, 'markAsRead'])->name('chat.markRead');
+});
+
+Route::get('/fix-db-chat', function () {
+    try {
+        // 1. Tags in food_logs
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('food_logs', 'tags')) {
+            \Illuminate\Support\Facades\Schema::table('food_logs', function ($table) {
+                $table->json('tags')->nullable();
+            });
+            echo "Added tags column.<br>";
+        }
+
+        // 2. Growth Logs Table
+        if (!\Illuminate\Support\Facades\Schema::hasTable('growth_logs')) {
+            \Illuminate\Support\Facades\Schema::create('growth_logs', function ($table) {
+                $table->id();
+                $table->foreignId('family_member_id')->constrained('family_members')->onDelete('cascade');
+                $table->decimal('height', 5, 2);
+                $table->decimal('weight', 5, 2);
+                $table->date('recorded_at');
+                $table->timestamps();
+            });
+            echo "Created growth_logs table.<br>";
+        }
+
+        // 3. Messages Table
+        if (!\Illuminate\Support\Facades\Schema::hasTable('messages')) {
+            \Illuminate\Support\Facades\Schema::create('messages', function ($table) {
+                $table->id();
+                $table->foreignId('sender_id')->constrained('users')->onDelete('cascade');
+                $table->foreignId('recipient_id')->constrained('users')->onDelete('cascade');
+                $table->text('message');
+                $table->boolean('is_read')->default(false);
+                $table->timestamps();
+            });
+            echo "Created messages table.<br>";
+        } else {
+            echo "Messages table exists.<br>";
+        }
+
+        return "Fix DB Complete";
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
 });
 
 require __DIR__ . '/auth.php';

@@ -40,6 +40,17 @@ export default function Authenticated({ user, header, children, headerActions })
                             <BarChart3 className="w-5 h-5" />
                             <span className="font-medium text-sm">Progress</span>
                         </Link>
+                        <Link href={route('chat.index')} className={`relative flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('chat.index') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            <span className="font-medium text-sm">Family Chat</span>
+                            {user.unreadMessagesCount > 0 && (
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                    {user.unreadMessagesCount}
+                                </span>
+                            )}
+                        </Link>
                         <Link href={route('profile.edit')} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${route().current('profile.edit') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                             <SettingsIcon className="w-5 h-5" />
                             <span className="font-medium text-sm">Profil Seting</span>
@@ -64,6 +75,19 @@ export default function Authenticated({ user, header, children, headerActions })
                             <div>{header}</div>
                             <div className="flex items-center gap-3">
                                 {headerActions}
+                                {/* Notification Icon */}
+                                <Link href={route('invitations.index')} className="relative p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <span className="sr-only">View notifications</span>
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    {/* Badge */}
+                                    {user && (user.pendingInvitationsCount > 0 || user.unreadMessagesCount > 0) && (
+                                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-800">
+                                            {(user.pendingInvitationsCount || 0) + (user.unreadMessagesCount || 0)}
+                                        </span>
+                                    )}
+                                </Link>
                                 <ThemeToggle />
                             </div>
                         </div>

@@ -32,7 +32,15 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? array_merge($request->user()->toArray(), [
+                    'pendingInvitationsCount' => \App\Models\FamilyInvitation::where('recipient_email', $request->user()->email)
+                        ->where('status', 'pending')
+                        ->count(),
+                    'unreadMessagesCount' => \App\Models\Message::where('recipient_id', $request->user()->id)
+                        ->where('sender_id', '!=', $request->user()->id)
+                        ->where('is_read', false)
+                        ->count()
+                ]) : null,
             ],
         ];
     }

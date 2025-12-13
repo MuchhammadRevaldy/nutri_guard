@@ -76,12 +76,13 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                         <div className="flex items-center space-x-8 overflow-x-auto p-4 -mx-4">
                             {hasFamily ? (
                                 familyMembers.map((member, index) => (
-                                    <FamilyMemberCircle
-                                        key={member.id}
-                                        name={member.name}
-                                        active={index === 0} // Highlight first one for now
-                                        ageCategory={member.age_category}
-                                    />
+                                    <Link key={member.id} href={route('family.show', member.id)}>
+                                        <FamilyMemberCircle
+                                            name={member.name}
+                                            active={index === 0} // Highlight first one for now
+                                            ageCategory={member.age_category}
+                                        />
+                                    </Link>
                                 ))
                             ) : (
                                 <div className="text-sm text-gray-500 italic px-2">No members yet</div>
