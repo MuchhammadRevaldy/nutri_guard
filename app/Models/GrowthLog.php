@@ -5,25 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class FoodLog extends Model
+class GrowthLog extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'family_member_id',
-        'name',
-        'calories',
-        'protein',
-        'carbs',
-        'fat',
-        'image_path',
-        'eaten_at',
-        'tags'
+        'height',
+        'weight',
+        'recorded_at'
     ];
 
     protected $casts = [
-        'tags' => 'array',
-        'eaten_at' => 'datetime'
+        'recorded_at' => 'date',
+        'height' => 'decimal:2',
+        'weight' => 'decimal:2',
     ];
 
     public function familyMember()
