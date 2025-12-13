@@ -67,6 +67,10 @@ pip install -r requirements.txt
 # Or install manually:
 pip install torch torchvision Pillow numpy
 
+# NOTE: If the download is too large (2GB+) and you don't have an NVIDIA GPU, 
+# you can install the CPU-only version (much smaller) using:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
 ------------------------------------
 5. API KEYS
 ------------------------------------
@@ -81,3 +85,23 @@ RUNNING THE APP
 1. Terminal 1: php artisan serve
 2. Terminal 2: npm run dev
 3. Access http://localhost:8000 in your browser.
+
+====================================
+DEPLOYMENT NOTES (IMPORTANT)
+====================================
+This application uses Python AI libraries (PyTorch), which are heavy on resources (RAM & CPU).
+
+- **Shared Hosting (cPanel, etc.)**: NOT RECOMMENDED.
+  - Most shared hosting plans do not allow running heavy Python processes or have valid compilers for PyTorch.
+  - You may experience timeouts, "Out of Memory" errors, or account suspension.
+  
+- **VPS (Virtual Private Server)**: RECOMMENDED.
+  - Examples: DigitalOcean, AWS EC2, Linode, Google Compute Engine.
+  - You need full control (root access) to install Python dependencies and configure the environment variables correctly. 
+  
+  **How to Access via SSH:**
+  Open your terminal (PowerShell or CMD) and run:
+  `ssh username@your_server_ip`
+  (Example: `ssh root@103.45.22.11`)
+  *When prompted for a password, type it in and press Enter. Note: No characters will appear on screen while typing.* 
+

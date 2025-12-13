@@ -54,7 +54,7 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
             <Head title="Dashboard" />
 
             <div className="py-8">
-                <div className="px-6 space-y-8">
+                <div className="px-4 sm:px-6 space-y-8">
 
                     {/* 1. Family Monitoring Section */}
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl p-6 relative">
