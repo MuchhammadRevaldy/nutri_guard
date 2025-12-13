@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import ThemeToggle from '@/Components/ThemeToggle';
 import PrimaryButton from '@/Components/PrimaryButton';
 import heroImage from '@/images/hero.png';
+import logo from '@/images/logo-nutri-copy.png';
 
 export default function Welcome({ auth }) {
     const [activeSection, setActiveSection] = useState('features');
@@ -33,11 +34,7 @@ export default function Welcome({ auth }) {
                         <div className="flex justify-between h-16 items-center">
                             <div className="flex items-center">
                                 <Link href="/" className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
+                                    <img src={logo} className="w-8 h-8 rounded-lg" alt="NutriGuard Logo" />
                                     <span className="font-bold text-xl text-gray-900 dark:text-white tracking-tight">NutriGuard</span>
                                 </Link>
                             </div>
@@ -50,11 +47,10 @@ export default function Welcome({ auth }) {
                                         <a
                                             key={item}
                                             href={`#${id}`}
-                                            className={`inline-block pb-1 text-sm font-medium border-b-2 transition-colors ${
-                                                active
+                                            className={`inline-block pb-1 text-sm font-medium border-b-2 transition-colors ${active
                                                     ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500'
                                                     : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-emerald-500 dark:hover:text-emerald-400'
-                                            }`}
+                                                }`}
                                         >
                                             {item}
                                         </a>
@@ -213,11 +209,7 @@ export default function Welcome({ auth }) {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
                             <div className="text-center">
                                 <div className="flex items-center justify-center gap-3">
-                                    <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
+                                    <img src={logo} className="w-9 h-9 rounded-lg" alt="NutriGuard Logo" />
                                     <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">NutriGuard</span>
                                 </div>
                                 <p className="mt-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs mx-auto">
