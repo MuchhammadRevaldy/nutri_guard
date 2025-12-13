@@ -209,7 +209,7 @@ export default function FitChef({ auth }) {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
                     {/* Header Section */}
-                    <div className="text-center mb-10">
+                    <div className="text-center mb-10 animate-fade-in-up">
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3">
                             FitChef AI Recipe Maker
                         </h1>
@@ -219,7 +219,7 @@ export default function FitChef({ auth }) {
                     </div>
 
                     {/* Input Card - Adaptive Light/Dark Theme */}
-                    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl mb-12 border border-gray-200 dark:border-gray-700 transition-colors">
+                    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl mb-12 border border-gray-200 dark:border-gray-700 transition-colors animate-fade-in-up animation-delay-200">
                         <form onSubmit={handleGenerate} className="flex flex-col gap-6">
 
                             {/* Input Field with Green Border Focus */}

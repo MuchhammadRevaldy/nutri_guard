@@ -59,6 +59,17 @@ export default function WeeklyTrendChart({ chartData }) {
                 }
             }
         },
+        animation: {
+            duration: 1500,
+            easing: 'easeOutQuart',
+            delay: (context) => {
+                let delay = 0;
+                if (context.type === 'data' && context.mode === 'default' && !context.dropped) {
+                    delay = context.dataIndex * 150 + context.datasetIndex * 100;
+                }
+                return delay;
+            },
+        },
     };
 
     return (

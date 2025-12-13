@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Transition } from '@headlessui/react';
 
 export default function DayBreakdown({ day }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -36,7 +37,15 @@ export default function DayBreakdown({ day }) {
             </div>
 
             {/* Detailed Content */}
-            {isOpen && (
+            <Transition
+                show={isOpen}
+                enter="transition-all duration-300 ease-out"
+                enterFrom="opacity-0 -translate-y-4 max-h-0"
+                enterTo="opacity-100 translate-y-0 max-h-screen"
+                leave="transition-all duration-200 ease-in"
+                leaveFrom="opacity-100 translate-y-0 max-h-screen"
+                leaveTo="opacity-0 -translate-y-4 max-h-0"
+            >
                 <div className="p-4 pt-0 bg-gray-50/50 dark:bg-gray-800/50">
                     <div className="space-y-4 py-2">
                         {day.meals.length > 0 ? (
@@ -77,7 +86,7 @@ export default function DayBreakdown({ day }) {
                         </div>
                     </div>
                 </div>
-            )}
+            </Transition>
         </div>
     );
 }
