@@ -140,11 +140,13 @@ DEFAULT_NUTRI = {'cal': 300, 'prot': 15, 'carb': 30, 'fat': 12, 'sod': 400, 'sug
 
 def load_model(model_path):
     try:
-        model = models.resnet50(pretrained=False)
+        # Fix deprecation warning: use weights=None instead of pretrained=False
+        model = models.resnet50(weights=None)
         num_ftrs = model.fc.in_features
         model.fc = torch.nn.Linear(num_ftrs, 101)
         
-        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        # Fix PyTorch 2.6+ security change: explicit weights_only=False
+        state_dict = torch.load(model_path, map_location=torch.device('cpu'), weights_only=False)
         if 'state_dict' in state_dict:
             state_dict = state_dict['state_dict']
             
