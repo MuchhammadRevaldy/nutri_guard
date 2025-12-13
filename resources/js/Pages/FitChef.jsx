@@ -93,8 +93,6 @@ export default function FitChef({ auth }) {
     const handleGenerate = async (e) => {
         e.preventDefault();
 
-        // If there's text in input but not added to list yet, consider adding it or just warn.
-        // For better UX, let's prioritize the list. If list is empty but input has text, use input.
         let finalIngredients = ingredients;
         if (ingredients.length === 0 && inputValue.trim()) {
             finalIngredients = [inputValue.trim()];
@@ -220,8 +218,8 @@ export default function FitChef({ auth }) {
                         </p>
                     </div>
 
-                    {/* Input Card - Dark Themed as per Screenshot */}
-                    <div className="max-w-4xl mx-auto bg-gray-800 rounded-2xl p-8 shadow-xl mb-12 border border-gray-700">
+                    {/* Input Card - Adaptive Light/Dark Theme */}
+                    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl mb-12 border border-gray-200 dark:border-gray-700 transition-colors">
                         <form onSubmit={handleGenerate} className="flex flex-col gap-6">
 
                             {/* Input Field with Green Border Focus */}
@@ -237,7 +235,7 @@ export default function FitChef({ auth }) {
                                     onChange={(e) => setInputValue(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     placeholder="Type an ingredient or dish (e.g., grilled chicken, broccoli)... press Enter to add"
-                                    className="w-full pl-12 pr-4 py-4 bg-gray-700/50 border border-emerald-500/50 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-700/50 border border-emerald-200 dark:border-emerald-500/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                                 />
                             </div>
 
@@ -245,12 +243,12 @@ export default function FitChef({ auth }) {
                             {ingredients.length > 0 && (
                                 <div className="flex flex-wrap gap-2 animate-fade-in">
                                     {ingredients.map((ing, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-900/30 text-emerald-100 border border-emerald-500/30 rounded-lg text-sm font-medium">
+                                        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-100 border border-emerald-200 dark:border-emerald-500/30 rounded-lg text-sm font-medium">
                                             <span>{ing}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => removeIngredient(ing)}
-                                                className="text-emerald-400 hover:text-emerald-200 focus:outline-none"
+                                                className="text-emerald-500 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-200 focus:outline-none"
                                             >
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -285,14 +283,14 @@ export default function FitChef({ auth }) {
 
                     {/* Thinking Process Display */}
                     {thinkingProcess && (
-                        <div className="max-w-4xl mx-auto mb-8 p-4 bg-emerald-900/20 rounded-xl border border-emerald-800/50 animate-fade-in">
-                            <h4 className="flex items-center gap-2 text-sm font-bold text-emerald-400 mb-2">
+                        <div className="max-w-4xl mx-auto mb-8 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/50 animate-fade-in">
+                            <h4 className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 mb-2">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
                                 AI Thought Process
                             </h4>
-                            <p className="text-sm text-emerald-200/80 italic">
+                            <p className="text-sm text-emerald-700 dark:text-emerald-200/80 italic">
                                 "{thinkingProcess}"
                             </p>
                         </div>
@@ -300,7 +298,7 @@ export default function FitChef({ auth }) {
 
                     {/* Error Message */}
                     {error && (
-                        <div className="max-w-4xl mx-auto mb-8 p-4 bg-red-900/20 text-red-200 rounded-xl border border-red-800/50 text-center">
+                        <div className="max-w-4xl mx-auto mb-8 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-200 rounded-xl border border-red-200 dark:border-red-800/50 text-center">
                             {error}
                         </div>
                     )}
