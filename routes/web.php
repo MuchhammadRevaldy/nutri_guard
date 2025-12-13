@@ -117,7 +117,8 @@ Route::get('/report', function () {
     for ($i = 0; $i < 7; $i++) {
         $date = $startDate->copy()->addDays($i);
         $dateStr = $date->toDateString();
-        $displayDate = $date->format('l'); // Monday, Tuesday...
+        // Format: "Sun, Dec 14" to match user expectation/request
+        $displayDate = $date->format('D, M j');
 
         $dayLogs = $logs->filter(function ($log) use ($dateStr) {
             return \Carbon\Carbon::parse($log->eaten_at)->toDateString() === $dateStr;
@@ -130,7 +131,7 @@ Route::get('/report', function () {
 
         $dailyBreakdown[] = [
             'date' => $displayDate,
-            'full_date' => $date->format('M j'),
+            'full_date' => $date->format('Y-m-d'), // Keep ISO for potential technical use
             'total_calories' => $dayTotalCal,
             'target_calories' => $dailyGoal,
             'macros' => [
