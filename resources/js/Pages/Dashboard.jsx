@@ -192,7 +192,7 @@ export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], d
                         </div>
 
                         {/* 6. Recommended Meal */}
-                        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700/50 hover:border-emerald-500/30 transition-all duration-300">
+                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-emerald-500/30 transition-all duration-300">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-gray-400 text-sm font-medium">Today's Recommended Meal</h3>
                                 <button
