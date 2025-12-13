@@ -30,25 +30,42 @@ class NutriScanController extends Controller
         $pythonExec = config('services.nutriscan.python_path', 'python');
         $pythonScript = base_path('services/python/predict_cli.py');
 
-        // Pass system environment variables to the process (Windows safety)
-        $process = Process::env([
-            'SYSTEMROOT' => getenv('SYSTEMROOT'),
-            'PATH' => getenv('PATH'),
-            'TEMP' => getenv('TEMP'),
-            'TMP' => getenv('TMP'),
-        ])->run([$pythonExec, $pythonScript, $absolutePath]);
+        // Run Python Script (Cross-Platform)
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Windows sometimes needs explicit env vars for Python to find libraries
+            $process = Process::env([
+                'SYSTEMROOT' => getenv('SYSTEMROOT'),
+                'PATH' => getenv('PATH'),
+                'TEMP' => getenv('TEMP'),
+                'TMP' => getenv('TMP'),
+            ])->run([$pythonExec, $pythonScript, $absolutePath]);
+        } else {
+            // Linux/Mac usually runs best with default inherited environment
+            $process = Process::run([$pythonExec, $pythonScript, $absolutePath]);
+        }
 
         if ($process->successful()) {
             $output = $process->output();
+            \Illuminate\Support\Facades\Log::info('NutriScan Python Output: ' . $output); // LOGGING ADDED
+
             $aiData = json_decode($output, true);
 
             if ($aiData && !isset($aiData['error'])) {
                 $aiData['image_url'] = Storage::url($path);
                 return redirect()->route('nutriscan.index')->with('analysis', $aiData);
+            } else {
+                // Handle JSON parse error or explicit error from Python
+                $errorMsg = $aiData['error'] ?? 'Gagal memproses analisis nutrisi (Invalid Output).';
+                return redirect()->route('nutriscan.index')->with('error', $errorMsg);
             }
+        } else {
+            // Handle Process Error (Exit Code != 0)
+            $errorOutput = $process->errorOutput();
+            \Illuminate\Support\Facades\Log::error('NutriScan Python Error: ' . $errorOutput);
+            return redirect()->route('nutriscan.index')->with('error', 'Terjadi kesalahan sistem saat menjalankan AI.');
         }
     }
-    
+
     public function storeLog(Request $request)
     {
         $data = $request->validate([

@@ -5,6 +5,11 @@ from torchvision import models, transforms
 from PIL import Image
 import os
 
+# Fix for "could not create a primitive" error on some CPU environments
+# This disables the MKL-DNN backend which can be unstable on certain VPS hardware
+torch.backends.mkldnn.enabled = False
+
+
 # 1. Food-101 Class Names
 CLASSES = [
     'apple_pie', 'baby_back_ribs', 'baklava', 'beef_carpaccio', 'beef_tartare',
@@ -247,7 +252,7 @@ def predict(image_path, model_path):
                 'sugar': nutri['sug']
             },
             'portion': '1 serving',
-            'debug_info': f"Torch {torch.__version__}"
+            'debug_info': f"Torch {torch.__version__} (MKLDNN Disabled)"
         }
         
         print(json.dumps(result))
