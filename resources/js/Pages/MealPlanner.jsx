@@ -9,25 +9,7 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function MealPlanner({ auth }) {
     // Custom Scrollbar Styles
-    const scrollbarStyles = `
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: rgba(156, 163, 175, 0.5);
-            border-radius: 20px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(107, 114, 128, 0.8);
-        }
-        .custom-scrollbar::-webkit-scrollbar-button {
-            display: none;
-        }
-    `;
+    // Custom Scrollbar Styles moved to app.css
 
     // 2. STATE MANAGEMENT
     // Initial state: Pre-fill with first 7 items from RECOMMENDATIONS
@@ -144,7 +126,7 @@ export default function MealPlanner({ auth }) {
             header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Family Growth Plan</h2>}
         >
             <Head title="Family Growth Plan" />
-            <style>{scrollbarStyles}</style>
+
 
             <div className="h-[calc(100vh-8.5rem)] flex gap-4 py-4 overflow-hidden text-gray-800 font-sans">
 
@@ -218,9 +200,9 @@ export default function MealPlanner({ auth }) {
                                                 <div className="flex flex-wrap justify-center gap-2 mt-3 w-full">
                                                     {plan.meal.tags.slice(0, 3).map((tag, tIdx) => ( // limit to 3 tags for layout safety
                                                         <span key={tIdx} className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm max-w-full truncate ${tag.includes('Animal') ? 'bg-emerald-100 text-emerald-800' :
-                                                                tag.includes('Iron') ? 'bg-orange-100 text-orange-800' :
-                                                                    tag.includes('Omega') ? 'bg-blue-100 text-blue-800' :
-                                                                        'bg-yellow-100 text-yellow-800'
+                                                            tag.includes('Iron') ? 'bg-orange-100 text-orange-800' :
+                                                                tag.includes('Omega') ? 'bg-blue-100 text-blue-800' :
+                                                                    'bg-yellow-100 text-yellow-800'
                                                             }`}>
                                                             {getTagIcon(tag)} {tag.replace('Animal Protein', 'Animal')}
                                                         </span>
@@ -235,8 +217,8 @@ export default function MealPlanner({ auth }) {
 
                                             {/* Bottom Status Indicator */}
                                             <div className={`mt-2 py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wide ${status === 'safe'
-                                                    ? 'bg-emerald-100 text-emerald-800'
-                                                    : 'bg-amber-100 text-amber-800'
+                                                ? 'bg-emerald-100 text-emerald-800'
+                                                : 'bg-amber-100 text-amber-800'
                                                 }`}>
                                                 {status === 'safe'
                                                     ? <><CheckCircle className="w-3 h-3 shrink-0" /> Safe</>

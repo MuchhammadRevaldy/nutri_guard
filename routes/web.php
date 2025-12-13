@@ -183,6 +183,13 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('MealPlanner');
     })->name('meal-planner');
 
+    // Gemini Thinking Demo
+    Route::get('/coba-deploy', function () {
+        return Inertia::render('CobaDeploy');
+    })->name('coba-deploy');
+
+    Route::post('/coba-deploy/chat', [\App\Http\Controllers\TryDeployController::class, 'chat'])->name('coba-deploy.chat');
+
 
     // Onboarding / Setup Profile
     Route::get('/setup-profile', function () {
