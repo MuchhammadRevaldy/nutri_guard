@@ -43,18 +43,12 @@ php artisan serve
 ------------------------------------
 Open a new terminal tab and run:
 
-# Install Node dependencies
+# Install Node dependencies (Recommended)
+# Running this single command will install ALL libraries listed in package.json (the "requirements file" for Node.js)
 npm install
 
-# Install Specific Libraries (already in package.json, but listed for reference)
-npm install groq-sdk
-npm install openai
-npm install @google/generative-ai
-npm install chart.js react-chartjs-2
-npm install lucide-react
-npm install jspdf
-npm install markdown-to-jsx
-npm install react-markdown
+# Alternatively, if you need to install these specific libraries manually in one go:
+npm install groq-sdk @google/generative-ai chart.js react-chartjs-2 lucide-react jspdf markdown-to-jsx react-markdown
 
 # Start the Vite Development Server
 npm run dev
