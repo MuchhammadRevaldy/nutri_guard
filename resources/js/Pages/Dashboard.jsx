@@ -10,10 +10,13 @@ import InviteMemberModal from '@/Components/Modals/InviteMemberModal';
 import ManageMembersModal from '@/Components/Modals/ManageMembersModal';
 import Modal from '@/Components/Modal';
 
-export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats, weeklyChartData, success }) {
+export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], dailyStats, weeklyChartData, success }) {
 
-    // Default stats if empty
+    // Default stats if empty or undefined
     const stats = dailyStats || { calories: 0, protein: 0, carbs: 0, fat: 0, goal_calories: 2000 };
+
+    // Default chart data if undefined
+    const chartData = weeklyChartData || { labels: [], data: [] };
 
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [showManageModal, setShowManageModal] = useState(false);
@@ -493,8 +496,8 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
     ];
 
     const [recommended, setRecommended] = useState(recommendedMeals[0]);
-    const [showRecipeModal, setShowRecipeModal] = useState(false);
-    const hasLogs = todaysLogs && todaysLogs.length > 0;
+    const hasLogs = Array.isArray(todaysLogs) && todaysLogs.length > 0;
+    const hasFamily = Array.isArray(familyMembers) && familyMembers.length > 0;
 
     useEffect(() => {
         if (success) {
@@ -541,14 +544,18 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
 
                         {/* Family List - Added p-4 to fix clipping issues */}
                         <div className="flex items-center space-x-8 overflow-x-auto p-4 -mx-4">
-                            {familyMembers.map((member, index) => (
-                                <FamilyMemberCircle
-                                    key={member.id}
-                                    name={member.name}
-                                    active={index === 0} // Highlight first one for now
-                                    ageCategory={member.age_category}
-                                />
-                            ))}
+                            {hasFamily ? (
+                                familyMembers.map((member, index) => (
+                                    <FamilyMemberCircle
+                                        key={member.id}
+                                        name={member.name}
+                                        active={index === 0} // Highlight first one for now
+                                        ageCategory={member.age_category}
+                                    />
+                                ))
+                            ) : (
+                                <div className="text-sm text-gray-500 italic px-2">No members yet</div>
+                            )}
 
                             {/* Add Member Button */}
                             <div
@@ -602,7 +609,7 @@ export default function Dashboard({ auth, familyMembers, todaysLogs, dailyStats,
                                     View Details &rarr;
                                 </Link>
                             </div>
-                            <WeeklyTrendChart chartData={weeklyChartData} />
+                            <WeeklyTrendChart chartData={chartData} />
                         </div>
 
                         {/* 4. Macro Nutrients */}
