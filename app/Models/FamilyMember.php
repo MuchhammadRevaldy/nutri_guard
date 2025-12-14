@@ -65,12 +65,18 @@ class FamilyMember extends Model
 
         $age = $this->birth_date->age;
 
+        // Specific User Request Logic:
+        // 13-19 = Teenager
+        // 20-40 = Adult
+
         if ($age < 13) {
             return 'Child';
         } elseif ($age <= 19) {
             return 'Teenager';
+        } elseif ($age <= 40) {
+            return 'Adult';
         } else {
-            return 'Mature';
+            return 'Senior'; // Fallback for > 40
         }
     }
 
