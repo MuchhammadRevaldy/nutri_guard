@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skema Database (ERD) - NutriGuard</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+        }
+
+        h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.5rem;
+            color: #111;
+        }
+
+        h2 {
+            margin-top: 2rem;
+            color: #444;
+        }
+
+        h3 {
+            margin-top: 1.5rem;
+            color: #555;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .mermaid {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        @media print {
+            body {
+                max-width: 100%;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Skema Database (ERD)</h1>
+
+    <h2>Ringkasan</h2>
+    <p>Database dirancang di sekitar tabel <code>users</code> (autentikasi) dan tabel <code>family_members</code>
+        (profil). Satu Pengguna dapat mengelola beberapa Anggota Keluarga (misalnya, "Anda", "Anak", "Pasangan").</p>
+
+    <h2>Diagram Hubungan Entitas (ERD)</h2>
+
+    <div class="mermaid">
+        erDiagram
+        USERS ||--o{ FAMILY_MEMBERS : mengelola
+        USERS ||--o{ MESSAGES : mengirim_dan_menerima
+        USERS ||--o{ FAMILY_INVITATIONS : mengirim
+
+        FAMILY_MEMBERS ||--o{ FOOD_LOGS : mencatat_makanan
+        FAMILY_MEMBERS ||--o{ GROWTH_LOGS : melacak_pertumbuhan
+
+        %% User (Autentikasi)
+        USERS {
+        bigint id PK
+        string name
+        string email
+        string password
+        string avatar_path(nullable)
+        }
+
+        %% Family Member (Profil Keluarga)
+        FAMILY_MEMBERS {
+        bigint id PK
+        bigint linked_user_id FK "Pengguna Pemilik"
+        string name
+        string role "parent|child"
+        string gender
+        date birth_date
+        decimal height
+        decimal weight
+        string activity_level
+        string health_goal
+        int daily_calorie_goal
+        string email(nullable)
+        }
+
+        %% Food Logs (Asupan Harian)
+        FOOD_LOGS {
+        bigint id PK
+        bigint family_member_id FK
+        string name
+        int calories
+        float protein
+        float carbs
+        float fat
+        string image_path
+        timestamp eaten_at
+        json tags
+        }
+
+        %% Growth Logs (Pelacakan Progres)
+        GROWTH_LOGS {
+        bigint id PK
+        bigint family_member_id FK
+        decimal height
+        decimal weight
+        date recorded_at
+        }
+
+        %% Messages (Chat)
+        MESSAGES {
+        bigint id PK
+        bigint sender_id FK
+        bigint recipient_id FK
+        text message
+        boolean is_read
+        }
+
+        %% Invitations (Undangan)
+        FAMILY_INVITATIONS {
+        bigint id PK
+        bigint inviter_id FK
+        string email
+        string token
+        timestamp expires_at
+        }
+    </div>
+
+    <h2>Hubungan Utama</h2>
+    <ol>
+        <li><strong>User -> FamilyMember</strong>: One-to-Many. Satu pengguna login dan dapat beralih di antara profil
+            keluarga yang berbeda (misalnya, mengelola diet anak mereka).</li>
+        <li><strong>FamilyMember -> FoodLog</strong>: One-to-Many. Setiap makanan terikat pada profil anggota keluarga
+            tertentu, bukan hanya akun pengguna.</li>
+        <li><strong>FamilyMember -> GrowthLog</strong>: One-to-Many. Melacak perubahan berat/tinggi badan dari waktu ke
+            waktu untuk grafik.</li>
+    </ol>
+
+</body>
+
+</html>

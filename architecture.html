@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arsitektur Sistem - NutriGuard</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+        }
+
+        h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.5rem;
+            color: #111;
+        }
+
+        h2 {
+            margin-top: 2rem;
+            color: #444;
+        }
+
+        h3 {
+            margin-top: 1.5rem;
+            color: #555;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .mermaid {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        @media print {
+            body {
+                max-width: 100%;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Arsitektur Sistem: NutriGuard</h1>
+
+    <h2>Ringkasan</h2>
+    <p>NutriGuard menggunakan pendekatan <strong>Arsitektur Monolitik Modern</strong>, menggabungkan ketangguhan Laravel
+        dengan interaktivitas React melalui Inertia.js. Ini menghilangkan kebutuhan akan layer API terpisah untuk
+        frontend sambil tetap memberikan pengalaman <em>Single Page Application</em> (SPA). Sistem ini juga
+        mengintegrasikan <strong>Layer AI Hibrida</strong> menggunakan skrip Python lokal dan API LLM eksternal.</p>
+
+    <h2>Diagram Tingkat Tinggi</h2>
+
+    <div class="mermaid">
+        graph TD
+        User[Pengguna / Browser] <--> |HTTPS| WebServer[Server Web (Nginx/Apache)]
+            WebServer <--> |Requests| Laravel[Framework Laravel (PHP)]
+
+                subgraph "Layer Frontend (Inertia.js)"
+                React[Komponen React.js]
+                Tailwind[Tailwind CSS]
+                Inertia[Adapter Inertia]
+                end
+
+                subgraph "Layer Backend"
+                Controllers[Http Controllers]
+                Models[Model Eloquent]
+                Routes[Web Routes]
+                DB[(Database MySQL)]
+                end
+
+                subgraph "Layer Layanan AI"
+                NutriScan[NutriScan (Python/TensorFlow)]
+                FitChef[FitChef (Groq/Gemini API)]
+                Scripts[Skrip CLI Python]
+                end
+
+                User <--> React
+                    React <--> |JSON via Inertia| Laravel
+                        Laravel --> Controllers
+                        Controllers --> Models
+                        Models <--> DB
+
+                            %% Interaksi AI
+                            Controllers --> |Proses/Eksekusi| Scripts
+                            Scripts --> NutriScan
+                            Controllers --> |Request HTTP| FitChef
+    </div>
+
+    <h2>Penjelasan Detail</h2>
+
+    <h3>1. Inti Sistem: "Monolitik Modern" (Laravel + Inertia)</h3>
+    <p>Berbeda dengan pemisahan Backend (API) dan Frontend (SPA) tradisional, kami menggunakan
+        <strong>Inertia.js</strong>.</p>
+    <ul>
+        <li><strong>Cara kerja</strong>: Controller Laravel mengembalikan
+            <code>Inertia::render('NamaHalaman', $data)</code> alih-alih JSON atau tampilan Blade.</li>
+        <li><strong>Manfaat</strong>: Anda mendapatkan kekuatan penuh komponen React tanpa kerumitan mengelola state
+            routing di sisi klien atau layer autentikasi API yang kompleks (Sanctum/Passport). Ini bertindak seperti
+            aplikasi server-side klasik tetapi terasa seperti SPA modern.</li>
+    </ul>
+
+    <h3>2. Frontend (React + Tailwind)</h3>
+    <ul>
+        <li><strong>Pustaka UI</strong>: React.</li>
+        <li><strong>Styling</strong>: Tailwind CSS untuk styling <em>utility-first</em>, memastikan pengembangan UI yang
+            cepat dan token desain yang konsisten.</li>
+        <li><strong>Manajemen State</strong>: Sebagian besar ditangani oleh <em>passing prop</em> Inertia. State lokal
+            menggunakan <code>useState</code> React.</li>
+    </ul>
+
+    <h3>3. Layer AI (Pendekatan Hibrida)</h3>
+    <p>Kami menggunakan dua strategi berbeda untuk AI, tergantung pada kebutuhan privasi dan performa:</p>
+    <ul>
+        <li>
+            <strong>NutriScan (AI Lokal)</strong>:
+            <ul>
+                <li><strong>Teknologi</strong>: Python + TensorFlow/Keras.</li>
+                <li><strong>Arsitektur</strong>: Dijalankan sebagai <strong>Perintah CLI</strong> yang dipicu oleh
+                    Laravel.</li>
+                <li><strong>Alur</strong>: Controller mengunggah gambar -> Memanggil <code>python predict_cli.py</code>
+                    -> Menangkap Output -> Mengembalikan ke Pengguna.</li>
+                <li><strong>Mengapa?</strong>: Menjaga pemrosesan gambar tetap internal/lokal dan memungkinkan
+                    penggunaan model kustom.</li>
+            </ul>
+        </li>
+        <li>
+            <strong>FitChef (AI Generatif)</strong>:
+            <ul>
+                <li><strong>Teknologi</strong>: Groq SDK / Gemini API / OpenAI.</li>
+                <li><strong>Arsitektur</strong>: Layanan API Eksternal.</li>
+                <li><strong>Alur</strong>: Controller menyusun prompt -> Mengirim Permintaan HTTP ke Penyedia LLM ->
+                    Mengurai Respons JSON -> Menyimpan ke DB.</li>
+                <li><strong>Mengapa?</strong>: Tugas teks generatif (resep) paling baik ditangani oleh model fondasi
+                    besar.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h2>Pola Desain Utama yang Digunakan</h2>
+    <ul>
+        <li><strong>MVC (Model-View-Controller)</strong>: Struktur standar Laravel.</li>
+        <li><strong>Repository Pattern (Implisit)</strong>: Logika sebagian besar ada di Controller/Model (Active
+            Record), menjaganya tetap sederhana.</li>
+        <li><strong>Observer Pattern</strong>: Digunakan untuk reaktivitas React.</li>
+        <li><strong>Service Layer</strong>: Kelas khusus untuk menangani logika AI (misalnya, logika generik
+            <code>NutriScanService</code>) agar controller tetap bersih.</li>
+    </ul>
+
+</body>
+
+</html>
