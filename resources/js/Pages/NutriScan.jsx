@@ -291,9 +291,9 @@ export default function NutriScan({ auth, analysis, error }) {
                                     <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl">
                                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Portion:</span>
                                         <select className="bg-transparent border-none text-gray-900 dark:text-white font-bold focus:ring-0 cursor-pointer">
-                                            <option>{result.portion}</option>
-                                            <option>1 cup (158g)</option>
-                                            <option>0.5 cup (79g)</option>
+                                            <option className="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">{result.portion}</option>
+                                            <option className="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">1 cup (158g)</option>
+                                            <option className="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">0.5 cup (79g)</option>
                                         </select>
                                     </div>
 
