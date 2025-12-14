@@ -4,6 +4,8 @@ import WeeklyTrendChart from '@/Components/Charts/WeeklyTrendChart'; // Reuse ch
 import DayBreakdown from '@/Components/Report/DayBreakdown';
 import TopFoodsList from '@/Components/Report/TopFoodsList';
 
+import { jsPDF } from "jspdf";
+
 export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, insights, topFoods }) {
 
     // Prepare chart data for reusable component
@@ -12,6 +14,71 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
     const weeklyChartData = {
         labels: chartLabels,
         data: chartValues
+    };
+
+    const handleDownloadPDF = () => {
+        const doc = new jsPDF();
+
+        // Title
+        doc.setFontSize(22);
+        doc.setTextColor(4, 120, 87); // Emerald 700
+        doc.text("NutriGuard Weekly Report", 20, 20);
+
+        // Subtitle / Date Range
+        doc.setFontSize(12);
+        doc.setTextColor(100);
+        doc.text(`Week: ${weekRange}`, 20, 30);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 36);
+
+        // Weekly Summary Section
+        doc.setDrawColor(200);
+        doc.line(20, 45, 190, 45); // Divider
+
+        doc.setFontSize(16);
+        doc.setTextColor(0);
+        doc.text("Summary", 20, 55);
+
+        doc.setFontSize(12);
+        doc.text(`Weekly Average Intake: ${avgCalories} kcal/day`, 20, 65);
+
+        const proteinStatus = insights.daysMetProtein === 7 ? "Perfect (7/7 days)" : `${insights.daysMetProtein}/7 days met goal`;
+        doc.text(`Protein Goal Status: ${proteinStatus}`, 20, 72);
+
+        // Daily Breakdown Table
+        doc.text("Daily Breakdown", 20, 90);
+
+        let yPos = 100;
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        // Header
+        doc.text("Date", 20, yPos);
+        doc.text("Calories", 70, yPos);
+        doc.text("Protein", 100, yPos);
+        doc.text("Carbs", 130, yPos);
+        doc.text("Fat", 160, yPos);
+
+        yPos += 5;
+        doc.line(20, yPos, 190, yPos);
+        yPos += 10;
+
+        doc.setTextColor(0);
+        dailyBreakdown.forEach((day) => {
+            doc.text(day.date, 20, yPos);
+            doc.text(`${day.total_calories} kcal`, 70, yPos);
+            doc.text(`${day.macros.protein}g`, 100, yPos);
+            doc.text(`${day.macros.carbs}g`, 130, yPos);
+            doc.text(`${day.macros.fat}g`, 160, yPos);
+            yPos += 10;
+        });
+
+        // Attempt to capture chart if available (optional/advanced, keeping simple text for now for reliability)
+        // const canvas = document.querySelector('canvas');
+        // if(canvas) {
+        //    const imgData = canvas.toDataURL("image/png", 1.0);
+        //    doc.addImage(imgData, 'PNG', 20, yPos + 10, 170, 80);
+        // }
+
+        doc.save("nutriguard-report.pdf");
     };
 
     return (
@@ -25,7 +92,10 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                 </div>
             }
             headerActions={
-                <button className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold transition-colors shadow-sm">
+                <button
+                    onClick={handleDownloadPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold transition-colors shadow-sm"
+                >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
