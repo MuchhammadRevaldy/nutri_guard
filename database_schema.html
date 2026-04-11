@@ -144,12 +144,13 @@
 
     <h2>Hubungan Utama</h2>
     <ol>
-        <li><strong>User -> FamilyMember</strong>: One-to-Many. Satu pengguna login dan dapat beralih di antara profil
-            keluarga yang berbeda (misalnya, mengelola diet anak mereka).</li>
-        <li><strong>FamilyMember -> FoodLog</strong>: One-to-Many. Setiap makanan terikat pada profil anggota keluarga
-            tertentu, bukan hanya akun pengguna.</li>
-        <li><strong>FamilyMember -> GrowthLog</strong>: One-to-Many. Melacak perubahan berat/tinggi badan dari waktu ke
-            waktu untuk grafik.</li>
+        <li><strong>User -> FamilyMember</strong>: One-to-Many. Satu Pengguna memiliki daftar Anggota Keluarga. Ini bisa
+            berupa <strong>profil yang dikelola penuh</strong> (seperti anak) atau <strong>akun pengguna lain yang
+                terhubung</strong> (Linked User) untuk pemantauan bersama.</li>
+        <li><strong>FamilyMember -> FoodLog</strong>: One-to-Many. Setiap catatan makanan disimpan spesifik untuk satu
+            Anggota Keluarga, memastikan perhitungan nutrisi yang akurat untuk setiap individu.</li>
+        <li><strong>FamilyMember -> GrowthLog</strong>: One-to-Many. Mencatat riwayat berat dan tinggi badan setiap
+            anggota untuk memantau perkembangan kesehatan secara individu.</li>
     </ol>
 
 </body>
