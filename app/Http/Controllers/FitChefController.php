@@ -10,32 +10,73 @@ class FitChefController extends Controller
 {
     public function index()
     {
-        return Inertia::render('FitChef');
+        $user   = auth()->user();
+        $myself = $user->familyMembers->where('linked_user_id', $user->id)->first()
+            ?? $user->familyMembers->where('name', 'You')->first()
+            ?? $user->familyMembers->first();
+
+        // Remaining calories for today
+        $todayCalories   = $myself ? $myself->foodLogs()->whereDate('eaten_at', now())->sum('calories') : 0;
+        $calorieGoal     = $myself?->daily_calorie_goal ?? 2000;
+        $remainingCalories = max(0, $calorieGoal - $todayCalories);
+
+        // Allergies from user's profile
+        $allergies = $myself?->allergies ?? [];
+
+        return Inertia::render('FitChef', [
+            'remainingCalories' => $remainingCalories,
+            'calorieGoal'       => $calorieGoal,
+            'allergies'         => $allergies,
+        ]);
     }
 
     public function generate(Request $request)
     {
         $request->validate([
-            'ingredients' => 'required|array',
+            'ingredients'   => 'required|array',
             'ingredients.*' => 'string',
-            'count' => 'sometimes|integer|min:1|max:12'
+            'count'         => 'sometimes|integer|min:1|max:12',
         ]);
 
+        $user   = auth()->user();
+        $myself = $user->familyMembers->where('linked_user_id', $user->id)->first()
+            ?? $user->familyMembers->where('name', 'You')->first()
+            ?? $user->familyMembers->first();
+
+        // Calorie budget & allergen context
+        $todayCalories     = $myself ? $myself->foodLogs()->whereDate('eaten_at', now())->sum('calories') : 0;
+        $calorieGoal       = $myself?->daily_calorie_goal ?? 2000;
+        $remainingCalories = max(0, $calorieGoal - $todayCalories);
+        $allergies         = $myself?->allergies ?? [];
+
         $ingredients = implode(', ', $request->input('ingredients'));
-        $apiKey = env('GEMINI_API_KEY', env('VITE_GEMINI_API_KEY'));
+        $apiKey      = env('GEMINI_API_KEY', env('VITE_GEMINI_API_KEY'));
+
         $count = $request->input('count');
         if ($count === null) {
-            $count = random_int(6, 12);//jumlah card resep menu
+            $count = random_int(6, 12);
         }
         $count = max(1, min(12, (int) $count));
 
-        $prompt = "Anda adalah ahli gizi dan koki profesional. Buat $count resep sehat yang berbeda menggunakan bahan-bahan berikut (ditambah bahan dapur dasar): $ingredients.
-        Kembalikan keluaran HANYA berupa array JSON mentah (tanpa markdown) berisi tepat $count item dengan struktur objek:
+        // Build allergen constraint string
+        $allergenClause = '';
+        if (!empty($allergies)) {
+            $allergenClause = 'PENTING: Resep WAJIB bebas dari alergen berikut: ' . implode(', ', $allergies) . '. Jangan gunakan bahan-bahan tersebut sama sekali.';
+        }
+
+        // Build calorie constraint
+        $calorieClause = "Setiap resep WAJIB memiliki kalori di bawah {$remainingCalories} kkal (sisa kuota kalori harian pengguna). Jangan buat resep yang melebihi batas ini.";
+
+        $prompt = "Anda adalah ahli gizi dan koki profesional. Buat {$count} resep sehat yang berbeda menggunakan bahan-bahan berikut (ditambah bahan dapur dasar): {$ingredients}.
+        {$allergenClause}
+        {$calorieClause}
+        Kembalikan keluaran HANYA berupa array JSON mentah (tanpa markdown) berisi tepat {$count} item dengan struktur objek:
         - title (string)
-        - calories (integer, perkiraan)
+        - calories (integer, perkiraan per porsi)
+        - protein (integer, gram per porsi)
         - time (string, mis. '40 menit')
         - ingredients (array of strings, daftar bahan lengkap)
-        - steps (array berisi 12–16 string, sangat rinci: persiapan, marinasi, memasak, finishing, resting, penyajian)
+        - steps (array berisi 12–16 string, sangat rinci)
         Pastikan resep cocok untuk keluarga dan gunakan bahasa Indonesia.";
 
         try {
@@ -47,188 +88,82 @@ class FitChefController extends Controller
 
             if ($response->failed()) {
                 \Illuminate\Support\Facades\Log::error('Gemini API Error', $response->json());
-                return $this->getMockRecipes($ingredients, $count);
+                return $this->getMockRecipes($ingredients, $count, $remainingCalories);
             }
 
             $rawText = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '[]';
-
-            // Clean Markdown code blocks if API sends them
             $rawText = str_replace(['```json', '```'], '', $rawText);
 
             $recipes = json_decode($rawText, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return response()->json(['error' => 'AI generation format error.', 'raw' => $rawText], 500);
+                return response()->json(['error' => 'Format resep tidak valid dari AI.', 'raw' => $rawText], 500);
             }
 
+            // Filter recipes that exceed remaining calories (Business Rule #2)
+            $filtered = array_filter($recipes, fn($r) => ($r['calories'] ?? 9999) <= $remainingCalories);
+
             return response()->json([
-                'recipes' => $recipes
+                'recipes'           => array_values($filtered ?: $recipes), // fallback if all filtered
+                'remainingCalories' => $remainingCalories,
+                'allergies'         => $allergies,
             ]);
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('FitChef Exception', ['msg' => $e->getMessage()]);
-            return $this->getMockRecipes($ingredients, $count);
+            return $this->getMockRecipes($ingredients, $count, $remainingCalories);
         }
     }
-    private function getMockRecipes($ingredients, $count = 6)
+
+    private function getMockRecipes($ingredients, $count = 6, $remainingCalories = 2000)
     {
         $bases = [
-            ['Tumis Sehat (Mode Demo)', 450, '25 menit'],
-            ['Salad Segar (Mode Demo)', 320, '15 menit'],
-            ['Panggang Lezat (Mode Demo)', 400, '40 menit'],
-            ['Sup Hangat (Mode Demo)', 380, '35 menit'],
-            ['Pasta Malam (Mode Demo)', 520, '30 menit'],
-            ['Mangkok Gandum (Mode Demo)', 480, '25 menit'],
-            ['Wrap Sehat (Mode Demo)', 430, '20 menit'],
-            ['Tumis Kentang (Mode Demo)', 500, '28 menit']
+            ['Tumis Sehat (Demo)', 350, '25 menit', 22],
+            ['Salad Segar (Demo)', 280, '15 menit', 15],
+            ['Panggang Lezat (Demo)', 380, '40 menit', 30],
+            ['Sup Hangat (Demo)', 320, '35 menit', 18],
+            ['Pasta Malam (Demo)', 420, '30 menit', 20],
+            ['Mangkok Gandum (Demo)', 400, '25 menit', 25],
+            ['Wrap Sehat (Demo)', 350, '20 menit', 19],
+            ['Tumis Kentang (Demo)', 400, '28 menit', 12],
         ];
 
         $recipes = [];
         for ($i = 0; $i < $count; $i++) {
-            $b = $bases[$i % count($bases)];
-            $title = $b[0];
-            $style = strtolower($title);
+            $b     = $bases[$i % count($bases)];
+            $style = strtolower($b[0]);
 
-            // Extra ingredients per style
-            if (str_contains($style, 'tumis sehat')) {
-                $extra = ', Bawang Putih, Kecap Asin, Daun Bawang';
-                $steps = [
-                    'Baca resep dan siapkan peralatan.',
-                    'Cuci dan keringkan bahan; iris sayuran tipis dan merata.',
-                    'Iris atau potong protein menjadi ukuran gigitan.',
-                    'Kocok saus: kecap asin, sedikit air, sejumput gula, opsional tepung maizena.',
-                    'Panaskan wajan/wok api besar hingga sangat panas.',
-                    'Tambah minyak; tumis protein 1–2 menit hingga kecokelatan; angkat.',
-                    'Masukkan bawang putih dan daun bawang; aduk 30–45 detik hingga harum.',
-                    'Tambahkan sayuran; aduk terus 2–3 menit hingga renyah-lunak.',
-                    'Kembalikan protein; tuang saus dan aduk cepat.',
-                    'Masak 1–2 menit hingga saus mengental dan melapisi rata.',
-                    'Cicipi dan sesuaikan; tambah lada atau kecap bila perlu.',
-                    'Akhiri dengan minyak wijen; diamkan 1 menit, sajikan di atas nasi.'
-                ];
-            } elseif (str_contains($style, 'salad')) {
-                $extra = ', Air Lemon, Minyak Zaitun, Kacang';
-                $steps = [
-                    'Cuci daun hijau dan keringkan hingga benar-benar kering.',
-                    'Iris sayuran renyah seragam berukuran gigitan.',
-                    'Sangrai kacang atau biji 2–3 menit untuk aroma.',
-                    'Siapkan mangkuk besar dan alat pencampur.',
-                    'Kocok dressing: air lemon, minyak zaitun, garam, lada, sedikit madu.',
-                    'Masukkan ' . $ingredients . ' ke mangkuk.',
-                    'Tuang dressing; aduk perlahan hingga tercampur rata.',
-                    'Tambahkan kacang/biji sangrai; aduk lagi untuk tekstur.',
-                    'Diamkan 5–7 menit agar rasa menyatu.',
-                    'Cicipi dan sesuaikan keasaman atau garam.',
-                    'Tambahkan herba segar sebagai finishing.',
-                    'Sajikan dingin.'
-                ];
-            } elseif (str_contains($style, 'panggang')) {
-                $extra = ', Herba, Bawang Putih, Lemon';
-                $steps = [
-                    'Panaskan oven ke 200°C; siapkan loyang beralas kertas panggang.',
-                    'Potong sayuran merata untuk kematangan seragam.',
-                    'Geprek bawang putih; cincang herba.',
-                    'Campur ' . $ingredients . ' dengan minyak, garam, lada, herba, bawang putih.',
-                    'Sebarkan satu lapis di loyang.',
-                    'Panggang 15 menit; balik atau kocok loyang.',
-                    'Lanjut panggang 10–20 menit hingga keemasan dan empuk.',
-                    'Cek kematangan dengan menusuk bagian tebal.',
-                    'Akhiri dengan perasan lemon untuk kesegaran.',
-                    'Taburi herba segar untuk aroma.',
-                    'Diamkan 2–3 menit agar uap mereda.',
-                    'Sajikan hangat sebagai lauk atau di atas gandum.'
-                ];
-            } elseif (str_contains($style, 'sup')) {
-                $extra = ', Kaldu, Bawang, Bawang Putih';
-                $steps = [
-                    'Potong dadu bawang dan cincang bawang putih.',
-                    'Siapkan panci dan ukur kaldu.',
-                    'Tumis bawang dan bawang putih dengan sedikit garam hingga bening.',
-                    'Tambahkan ' . $ingredients . ' dan aduk 1–2 menit hingga terlapisi.',
-                    'Tuang kaldu; didihkan perlahan.',
-                    'Kecilkan api dan masak 15–25 menit.',
-                    'Buang buih bila perlu.',
-                    'Cicipi dan sesuaikan garam, lada, dan asam.',
-                    'Masukkan herba segar menjelang akhir.',
-                    'Diamkan 2 menit agar rasa menyatu.',
-                    'Siapkan mangkuk saji.',
-                    'Sajikan panas.'
-                ];
-            } elseif (str_contains($style, 'pasta')) {
-                $extra = ', Pasta, Tomat, Parmesan';
-                $steps = [
-                    'Didihkan panci besar berisi air garam.',
-                    'Masak pasta hingga al dente; sisakan sedikit air rebusan.',
-                    'Tumis aromatik; tambahkan ' . $ingredients . ' dan tomat.',
-                    'Didihkan saus 8–12 menit hingga sedikit kental.',
-                    'Bumbui saus dan cicipi.',
-                    'Aduk pasta dengan saus menggunakan air rebusan untuk emulsi.',
-                    'Tambahkan minyak zaitun.',
-                    'Taburi parmesan dan herba.',
-                    'Diamkan 1 menit agar menyerap.',
-                    'Siapkan piring saji.',
-                    'Sajikan segera.',
-                    'Nikmati selagi hangat.'
-                ];
-            } elseif (str_contains($style, 'gandum')) {
-                $extra = ', Gandum Matang, Tahini, Sayuran Hijau';
-                $steps = [
-                    'Masak gandum hingga mengembang; dinginkan sebentar.',
-                    'Siapkan sayuran dan daun hijau.',
-                    'Kocok saus tahini dengan lemon, garam, dan air secukupnya hingga encer.',
-                    'Siapkan mangkok saji.',
-                    'Susun gandum sebagai dasar.',
-                    'Tambahkan ' . $ingredients . ' dan hijauan.',
-                    'Tuang saus tahini.',
-                    'Tambahkan topping renyah.',
-                    'Cicipi dan sesuaikan garam atau lemon.',
-                    'Taburi herba segar.',
-                    'Diamkan 1–2 menit.',
-                    'Sajikan hangat atau suhu ruang.'
-                ];
-            } elseif (str_contains($style, 'wrap')) {
-                $extra = ', Tortilla, Selada, Saus Yogurt';
-                $steps = [
-                    'Hangatkan tortilla hingga lentur.',
-                    'Siapkan bahan isian dan saus.',
-                    'Masak atau susun isian menggunakan ' . $ingredients . '.',
-                    'Oles saus yogurt di tortilla.',
-                    'Tambahkan selada dan isian.',
-                    'Gulung rapat dari satu sisi.',
-                    'Tekan ringan agar padat.',
-                    'Potong dua.',
-                    'Susun di piring saji.',
-                    'Sajikan segera.',
-                    'Tambahkan sambal atau saus lain jika suka.',
-                    'Nikmati.'
-                ];
-            } else {
-                $extra = ', Kentang, Bawang, Paprika';
-                $steps = [
-                    'Potong dadu kentang dan bawang secara merata.',
-                    'Panaskan wajan dan tambahkan minyak.',
-                    'Tumis bawang hingga harum.',
-                    'Tambahkan kentang dengan paprika dan garam.',
-                    'Masak sambil sesekali diaduk hingga renyah-lembut.',
-                    'Tambahkan ' . $ingredients . ' dan aduk rata.',
-                    'Cicipi dan sesuaikan bumbu.',
-                    'Taburi herba segar.',
-                    'Diamkan 1 menit.',
-                    'Siapkan piring saji.',
-                    'Sajikan panas.',
-                    'Nikmati selagi hangat.'
-                ];
-            }
+            $steps = [
+                'Baca resep dan siapkan semua peralatan yang dibutuhkan.',
+                'Cuci dan bersihkan semua bahan makanan dengan air mengalir.',
+                'Potong dan siapkan bahan sesuai ukuran yang dibutuhkan.',
+                'Panaskan wajan/panci dengan api sedang.',
+                'Tambahkan minyak secukupnya.',
+                'Tumis bumbu dasar hingga harum (bawang putih, bawang merah).',
+                'Masukkan bahan utama: ' . $ingredients . '.',
+                'Aduk rata dan masak hingga setengah matang.',
+                'Tambahkan bumbu dan rempah sesuai selera.',
+                'Cicipi dan sesuaikan rasa.',
+                'Masak hingga matang sempurna.',
+                'Sajikan panas dengan taburan herba segar.',
+            ];
 
             $recipes[] = [
-                'title' => $title,
-                'calories' => $b[1],
-                'time' => $b[2],
-                'ingredients' => explode(', ', $ingredients . $extra),
-                'steps' => $steps
+                'title'       => $b[0],
+                'calories'    => $b[1],
+                'protein'     => $b[3],
+                'time'        => $b[2],
+                'ingredients' => explode(', ', $ingredients . ', Bumbu dasar, Minyak goreng, Garam, Merica'),
+                'steps'       => $steps,
             ];
         }
 
-        return response()->json(['recipes' => $recipes]);
+        // Filter by remaining calories
+        $filtered = array_filter($recipes, fn($r) => $r['calories'] <= $remainingCalories);
+
+        return response()->json([
+            'recipes'           => array_values($filtered ?: $recipes),
+            'remainingCalories' => $remainingCalories,
+        ]);
     }
 }

@@ -1,330 +1,212 @@
-import { useState, useEffect } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import FamilyMemberCircle from '@/Components/Dashboard/FamilyMemberCircle';
-import FoodLogItem from '@/Components/Dashboard/FoodLogItem';
-import WeeklyTrendChart from '@/Components/Charts/WeeklyTrendChart';
-import MacroDonutChart from '@/Components/Charts/MacroDonutChart';
-import PrimaryButton from '@/Components/PrimaryButton';
-import InviteMemberModal from '@/Components/Modals/InviteMemberModal';
-import ManageMembersModal from '@/Components/Modals/ManageMembersModal';
-import Modal from '@/Components/Modal';
-import RevealOnScroll from '@/Components/RevealOnScroll';
-import recommendedMealsData from '@/data/recommendedMeals.json';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Scan, ChefHat, AlertTriangle, X, Coffee, Sun, Sunset, Moon, Plus, TrendingUp } from 'lucide-react';
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip } from 'chart.js';
 
-export default function Dashboard({ auth, familyMembers = [], todaysLogs = [], dailyStats, weeklyChartData, success }) {
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
-    const stats = dailyStats || { calories: 0, protein: 0, carbs: 0, fat: 0, goal_calories: 2000 };
+const MEAL_META = {
+    breakfast: { label: 'Sarapan',     icon: Coffee,  color: 'text-amber-500' },
+    lunch:     { label: 'Makan Siang', icon: Sun,     color: 'text-emerald-500' },
+    dinner:    { label: 'Makan Malam', icon: Sunset,  color: 'text-violet-500' },
+    snack:     { label: 'Snack',       icon: Moon,    color: 'text-orange-500' },
+};
 
-    const chartData = weeklyChartData || { labels: [], data: [] };
+function CalorieRing({ current, goal }) {
+    const pct   = Math.min(100, goal > 0 ? (current / goal) * 100 : 0);
+    const r     = 52;
+    const circ  = 2 * Math.PI * r;
+    const dash  = (pct / 100) * circ;
+    const color = pct > 110 ? '#ef4444' : pct > 85 ? '#f59e0b' : '#10b981';
+    return (
+        <div className="relative w-36 h-36 mx-auto">
+            <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                <circle cx="60" cy="60" r={r} fill="none" stroke="currentColor" strokeWidth="10" className="text-gray-100 dark:text-gray-800" />
+                <circle cx="60" cy="60" r={r} fill="none" stroke={color} strokeWidth="10"
+                    strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-extrabold text-gray-900 dark:text-white">{current.toLocaleString('id-ID')}</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400">dari {goal.toLocaleString('id-ID')}</span>
+                <span className="text-[10px] text-gray-400">kkal</span>
+            </div>
+        </div>
+    );
+}
 
-    const [showInviteModal, setShowInviteModal] = useState(false);
-    const [showManageModal, setShowManageModal] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [showRecipeModal, setShowRecipeModal] = useState(false);
+export default function Dashboard({ auth, familyMembers, logsByMealType, dailyStats, weeklyChartData, healthWarning, success }) {
+    const [dismissWarning, setDismissWarning] = useState(false);
+    const [activeMeal, setActiveMeal]         = useState('breakfast');
 
-    // Recommended meals list for random suggestion (Imported from JSON)
-    const recommendedMeals = recommendedMealsData;
+    const proteinGoal = Math.round((dailyStats.goal_calories * 0.25) / 4);
+    const carbsGoal   = Math.round((dailyStats.goal_calories * 0.50) / 4);
+    const fatGoal     = Math.round((dailyStats.goal_calories * 0.25) / 9);
 
-    const [recommended, setRecommended] = useState(recommendedMeals[0]);
-    const hasLogs = Array.isArray(todaysLogs) && todaysLogs.length > 0;
-    const hasFamily = Array.isArray(familyMembers) && familyMembers.length > 0;
-
-    useEffect(() => {
-        if (success) {
-            setShowSuccessModal(true);
-        }
-    }, [success]);
-
-    // Randomize today's recommended meal on load
-    useEffect(() => {
-        const idx = Math.floor(Math.random() * recommendedMeals.length);
-        setRecommended(recommendedMeals[idx]);
-    }, []);
-
-    const refreshRecommendation = () => {
-        const random = recommendedMeals[Math.floor(Math.random() * recommendedMeals.length)];
-        setRecommended(random);
+    const chartData = {
+        labels: weeklyChartData.labels,
+        datasets: [{
+            data: weeklyChartData.data,
+            fill: true,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16,185,129,0.07)',
+            tension: 0.4,
+            pointBackgroundColor: '#10b981',
+            pointRadius: 4,
+        }],
+    };
+    const chartOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 11 } } },
+            y: { grid: { color: 'rgba(156,163,175,0.1)' }, ticks: { color: '#9ca3af', font: { size: 11 } }, beginAtZero: true },
+        },
     };
 
+    const currentLogs = logsByMealType?.[activeMeal] ?? [];
+    const mealCals    = currentLogs.reduce((s, l) => s + (l.calories || 0), 0);
+
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Dashboard</h2>}
-        >
+        <AuthenticatedLayout user={auth.user} header="Dashboard">
             <Head title="Dashboard" />
+            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
 
-            <div className="py-8">
-                <div className="px-4 sm:px-6 space-y-8">
-
-                    {/* 1. Family Monitoring Section */}
-                    {/* 1. Family Monitoring Section */}
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl p-6 relative animate-fade-in-up">
-                        {/* Header with Settings Button */}
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Family Monitoring</h3>
-                            <button
-                                onClick={() => setShowManageModal(true)}
-                                className="flex items-center space-x-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                            >
-                                <span className="text-sm font-medium">Edit</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        {/* Family List - Added p-4 to fix clipping issues */}
-                        <div className="flex items-center space-x-8 overflow-x-auto p-4 -mx-4">
-                            {hasFamily ? (
-                                familyMembers.map((member, index) => (
-                                    <Link key={member.id} href={route('family.show', member.id)}>
-                                        <FamilyMemberCircle
-                                            name={member.name}
-                                            active={index === 0} // Highlight first one for now
-                                            ageCategory={member.age_category}
-                                        />
-                                    </Link>
-                                ))
-                            ) : (
-                                <div className="text-sm text-gray-500 italic px-2">No members yet</div>
-                            )}
-
-                            {/* Add Member Button */}
-                            <div
-                                className="flex flex-col items-center space-y-2 cursor-pointer opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
-                                onClick={() => setShowInviteModal(true)}
-                            >
-                                <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-400 dark:border-gray-600 flex items-center justify-center text-gray-400 dark:text-gray-500">
-                                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                </div>
-                                <span className="text-xs font-medium text-gray-500">Add New</span>
-                            </div>
-                        </div>
+                {healthWarning && !dismissWarning && (
+                    <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
+                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-700 dark:text-red-300 flex-1">{healthWarning}</p>
+                        <button onClick={() => setDismissWarning(true)}><X className="w-4 h-4 text-red-400" /></button>
                     </div>
+                )}
 
-                    {/* 2. Action Buttons */}
-                    {/* 2. Action Buttons */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up animation-delay-200">
-                        <Link href={route('nutriscan.index')} className="flex items-center justify-center gap-3 p-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-[1.02]">
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <div className="text-left">
-                                <div className="font-bold text-lg">Scan Food</div>
-                                <div className="text-sm opacity-90">Log your meal with a photo</div>
-                            </div>
-                        </Link>
-
-                        <Link href={route('fitchef.index')} className="flex items-center justify-center gap-3 p-6 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-500/30 transition-all transform hover:scale-[1.02]">
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                            </svg>
-                            <div className="text-left">
-                                <div className="font-bold text-lg">Generate Recipe</div>
-                                <div className="text-sm opacity-90">AI-powered meal suggestions</div>
-                            </div>
-                        </Link>
+                {success && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-emerald-700 dark:text-emerald-300">
+                        ✓ {success}
                     </div>
+                )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* 3. Weekly Trends Chart */}
-                        {/* 3. Weekly Trends Chart */}
-                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm relative animate-fade-in-up animation-delay-400">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Weekly Trends</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Total calorie intake</p>
-                                </div>
-                                <Link href={route('report')} className="text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 rounded-full transition-colors font-medium text-gray-600 dark:text-gray-300">
-                                    View Details &rarr;
-                                </Link>
-                            </div>
-                            <WeeklyTrendChart chartData={chartData} />
-                        </div>
-
-                        {/* 4. Macro Nutrients */}
-                        {/* 4. Macro Nutrients */}
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm space-y-6 animate-fade-in-up animation-delay-400">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Protein</div>
-                                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(stats.protein)}g <span className="text-sm font-normal text-gray-400">/ 110g</span></div>
-                                </div>
-                                <MacroDonutChart value={stats.protein} total={110} color="#059669" />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Carbs</div>
-                                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(stats.carbs)}g <span className="text-sm font-normal text-gray-400">/ 250g</span></div>
-                                </div>
-                                <MacroDonutChart value={stats.carbs} total={250} color="#f97316" />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Fat</div>
-                                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(stats.fat)}g <span className="text-sm font-normal text-gray-400">/ 70g</span></div>
-                                </div>
-                                <MacroDonutChart value={stats.fat} total={70} color="#3b82f6" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* 5. Today's Log */}
-                        {/* 5. Today's Log */}
-                        <RevealOnScroll className={`lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm ${hasLogs ? '' : 'min-h-64'}`}>
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Today's Log</h3>
-                                <div className="text-sm font-bold text-gray-900 dark:text-white">{stats.calories} <span className="text-gray-400 font-normal">/ {stats.goal_calories}</span> kcal</div>
-                            </div>
-
-                            <div className={`${hasLogs ? 'space-y-2' : 'space-y-2 h-full flex items-center justify-center'}`}>
-                                {hasLogs ? (
-                                    todaysLogs.map((log) => (
-                                        <FoodLogItem
-                                            key={log.id}
-                                            name={log.name}
-                                            calories={log.calories}
-                                            time={log.eaten_at}
-                                        />
-                                    ))
-                                ) : (
-                                    <div className="text-center text-gray-500">No meals logged today yet.</div>
-                                )}
-                            </div>
-                        </RevealOnScroll>
-
-                        {/* 6. Recommended Meal */}
-                        {/* 6. Recommended Meal */}
-                        <RevealOnScroll delay={200} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-emerald-500/30 transition-all duration-300">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-gray-400 text-sm font-medium">Today's Recommended Meal</h3>
-                                <button
-                                    onClick={refreshRecommendation}
-                                    className="text-gray-400 hover:text-emerald-400 transition-colors p-1 rounded-full hover:bg-gray-700/50"
-                                    title="Get another recommendation"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div className="relative group">
-                                <img
-                                    src={recommended.image}
-                                    alt={recommended.name}
-                                    className="w-full h-40 md:h-44 object-cover rounded-xl mb-4 shadow-sm"
-                                />
-                            </div>
-                            <div className="text-lg font-bold text-gray-900 dark:text-white">{recommended.name}</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-2 items-center">
-                                <span>{recommended.calories} kcal</span>
-                                <span>•</span>
-                                <span>{recommended.protein}g Protein</span>
-                                <span>•</span>
-                                <span>{recommended.time}</span>
-                            </div>
-
-                            <button
-                                onClick={() => setShowRecipeModal(true)}
-                                className="mt-4 block w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full transition-colors text-center"
-                            >
-                                View Recipe
-                            </button>
-                        </RevealOnScroll>
-                    </div>
-
+                {/* Quick actions */}
+                <div className="grid grid-cols-2 gap-4">
+                    <Link href={route('nutriscan.index')} className="flex items-center gap-3 p-4 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-emerald-600 transition-all">
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"><Scan className="w-5 h-5" /></div>
+                        <div><div className="font-bold text-sm">NutriScan</div><div className="text-xs text-emerald-100">Foto makanan</div></div>
+                    </Link>
+                    <Link href={route('fitchef.index')} className="flex items-center gap-3 p-4 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl text-white shadow-lg shadow-orange-500/20 hover:from-orange-400 hover:to-amber-500 transition-all">
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"><ChefHat className="w-5 h-5" /></div>
+                        <div><div className="font-bold text-sm">FitChef</div><div className="text-xs text-orange-100">Buat resep</div></div>
+                    </Link>
                 </div>
 
-                <InviteMemberModal show={showInviteModal} onClose={() => setShowInviteModal(false)} />
-                <ManageMembersModal show={showManageModal} onClose={() => setShowManageModal(false)} members={familyMembers} />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-4">
 
-                {/* Recipe Detail Modal */}
-                <Modal show={showRecipeModal} onClose={() => setShowRecipeModal(false)}>
-                    <div className="p-6 pt-12">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{recommended.name}</h2>
-                            <button onClick={() => setShowRecipeModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                        {/* Meal type tabs */}
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                            <div className="grid grid-cols-4 border-b border-gray-100 dark:border-gray-800">
+                                {Object.entries(MEAL_META).map(([key, meta]) => {
+                                    const Icon  = meta.icon;
+                                    const count = (logsByMealType?.[key] ?? []).length;
+                                    const active = activeMeal === key;
+                                    return (
+                                        <button key={key} onClick={() => setActiveMeal(key)}
+                                            className={`flex flex-col items-center gap-1 py-3 text-xs font-semibold transition-all border-b-2 ${active ? `${meta.color} border-current` : 'text-gray-400 dark:text-gray-500 border-transparent hover:text-gray-600 dark:hover:text-gray-300'}`}>
+                                            <Icon className="w-4 h-4" />
+                                            <span className="hidden sm:block">{meta.label}</span>
+                                            {count > 0 && <span className="bg-gray-100 dark:bg-gray-800 text-[10px] px-1.5 rounded-full">{count}</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{MEAL_META[activeMeal].label}</span>
+                                    {mealCals > 0 && <span className="text-xs text-gray-500 dark:text-gray-400">{mealCals} kkal</span>}
+                                </div>
+                                {currentLogs.length === 0 ? (
+                                    <div className="py-8 text-center">
+                                        <p className="text-2xl mb-2">🍽️</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Belum ada log {MEAL_META[activeMeal].label.toLowerCase()}</p>
+                                        <Link href={route('nutriscan.index')} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">
+                                            <Plus className="w-3 h-3" /> Tambah via NutriScan
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {currentLogs.map(log => (
+                                            <div key={log.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                                    {log.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{log.name}</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">P {Math.round(log.protein)}g · K {Math.round(log.carbs)}g · L {Math.round(log.fat)}g</div>
+                                                </div>
+                                                <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0">{log.calories} kkal</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="mb-6">
-                            <img src={recommended.image} alt={recommended.name} className="w-full h-56 object-cover rounded-2xl" />
-                        </div>
-
-                        <div className="flex gap-4 mb-6">
-                            <div className="bg-orange-50 dark:bg-orange-900/30 px-4 py-2 rounded-xl text-center">
-                                <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{recommended.calories}</div>
-                                <div className="text-xs text-orange-600/70 dark:text-orange-400/70 uppercase font-bold">kcal</div>
+                        {/* Chart */}
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                            <div className="flex items-center gap-2 mb-4">
+                                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                                <span className="text-sm font-semibold text-gray-900 dark:text-white">Tren 7 Hari</span>
                             </div>
-                            <div className="bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-xl text-center">
-                                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{recommended.protein}g</div>
-                                <div className="text-xs text-emerald-600/70 dark:text-emerald-400/70 uppercase font-bold">Protein</div>
-                            </div>
-                            <div className="bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-xl text-center">
-                                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{recommended.time}</div>
-                                <div className="text-xs text-blue-600/70 dark:text-blue-400/70 uppercase font-bold">Time</div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Ingredients</h3>
-                                <ul className="grid grid-cols-2 gap-2">
-                                    {recommended.ingredients && recommended.ingredients.map((ing, idx) => (
-                                        <li key={idx} className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                            {ing}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Preparation</h3>
-                                <ol className="space-y-3 relative border-l-2 border-gray-100 dark:border-gray-700 ml-3 pl-5">
-                                    {recommended.steps && recommended.steps.map((step, idx) => (
-                                        <li key={idx} className="relative text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                                            <span className="absolute -left-[27px] top-0 w-6 h-6 flex items-center justify-center bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold">
-                                                {idx + 1}
-                                            </span>
-                                            {step}
-                                        </li>
-                                    ))}
-                                </ol>
-                            </div>
+                            <div className="h-40"><Line data={chartData} options={chartOptions} /></div>
                         </div>
                     </div>
-                </Modal>
 
-                {/* Success Modal */}
-                {/* Custom Modal for Flash Messages */}
-                <Modal show={showSuccessModal} onClose={() => setShowSuccessModal(false)} maxWidth="sm">
-                    <div className="p-6 text-center">
-                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-6">
-                            <svg className="h-10 w-10 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                            </svg>
+                    {/* RIGHT */}
+                    <div className="space-y-4">
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white mb-4 text-center">Kalori Hari Ini</div>
+                            <CalorieRing current={dailyStats.calories} goal={dailyStats.goal_calories} />
+                            <div className="mt-5 space-y-3">
+                                {[
+                                    { label: 'Protein', value: dailyStats.protein, max: proteinGoal, color: 'bg-blue-500' },
+                                    { label: 'Karbo',   value: dailyStats.carbs,   max: carbsGoal,   color: 'bg-amber-500' },
+                                    { label: 'Lemak',   value: dailyStats.fat,     max: fatGoal,     color: 'bg-rose-500' },
+                                ].map(m => (
+                                    <div key={m.label}>
+                                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                            <span>{m.label}</span><span>{Math.round(m.value)}g</span>
+                                        </div>
+                                        <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                            <div className={`h-full ${m.color} rounded-full`} style={{ width: `${Math.min(100, m.max > 0 ? (m.value / m.max) * 100 : 0)}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Saved!</h2>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">{success}</p>
-                        <button
-                            onClick={() => setShowSuccessModal(false)}
-                            className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors"
-                        >
-                            Awesome
-                        </button>
+
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Anggota Keluarga</div>
+                            <div className="space-y-2">
+                                {(familyMembers ?? []).slice(0, 4).map(m => (
+                                    <Link key={m.id} href={route('family.show', m.id)}
+                                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                            {m.name.charAt(0)}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{m.name}</div>
+                                            {m.age_category && <div className="text-xs text-gray-500 dark:text-gray-400">{m.age_category}</div>}
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                            <Link href={route('invitations.index')} className="mt-3 w-full flex items-center justify-center gap-1 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors">
+                                <Plus className="w-3.5 h-3.5" /> Undang Anggota
+                            </Link>
+                        </div>
                     </div>
-                </Modal>
+                </div>
             </div>
-        </AuthenticatedLayout >
+        </AuthenticatedLayout>
     );
 }

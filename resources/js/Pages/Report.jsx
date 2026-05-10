@@ -1,200 +1,175 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
-import WeeklyTrendChart from '@/Components/Charts/WeeklyTrendChart'; // Reuse chart
-import DayBreakdown from '@/Components/Report/DayBreakdown';
-import TopFoodsList from '@/Components/Report/TopFoodsList';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Line, Bar } from 'react-chartjs-2';
+import {
+    Chart as ChartJS, CategoryScale, LinearScale, PointElement,
+    LineElement, BarElement, Filler, Tooltip, Legend
+} from 'chart.js';
+import { TrendingUp, Target, Award, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-import { jsPDF } from "jspdf";
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend);
 
 export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, insights, topFoods }) {
+    const labels      = dailyBreakdown.map(d => d.date);
+    const calData     = dailyBreakdown.map(d => d.total_calories);
+    const targetData  = dailyBreakdown.map(d => d.target_calories);
+    const proteinData = dailyBreakdown.map(d => d.macros.protein);
+    const carbsData   = dailyBreakdown.map(d => d.macros.carbs);
+    const fatData     = dailyBreakdown.map(d => d.macros.fat);
 
-    // Prepare chart data for reusable component
-    const chartLabels = dailyBreakdown.map(day => day.date.substring(0, 3)); // Mon, Tue
-    const chartValues = dailyBreakdown.map(day => day.total_calories);
-    const weeklyChartData = {
-        labels: chartLabels,
-        data: chartValues
+    const lineChart = {
+        labels,
+        datasets: [
+            { label: 'Kalori', data: calData, fill: true, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.07)', tension: 0.4, pointBackgroundColor: '#10b981', pointRadius: 4 },
+            { label: 'Target', data: targetData, borderColor: '#e5e7eb', borderDash: [5, 5], tension: 0, pointRadius: 0 },
+        ],
     };
 
-    const handleDownloadPDF = () => {
+    const barChart = {
+        labels,
+        datasets: [
+            { label: 'Protein', data: proteinData, backgroundColor: 'rgba(59,130,246,0.7)',  borderRadius: 4 },
+            { label: 'Karbo',   data: carbsData,   backgroundColor: 'rgba(245,158,11,0.7)',  borderRadius: 4 },
+            { label: 'Lemak',   data: fatData,      backgroundColor: 'rgba(239,68,68,0.7)',   borderRadius: 4 },
+        ],
+    };
+
+    const chartOpts = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+            y: { grid: { color: 'rgba(156,163,175,0.1)' }, ticks: { color: '#9ca3af', font: { size: 10 } }, beginAtZero: true },
+        },
+    };
+
+    const barOpts = {
+        ...chartOpts,
+        plugins: { legend: { display: true, position: 'bottom', labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 10 } } },
+    };
+
+    function exportPDF() {
         const doc = new jsPDF();
-
-        // Title
-        doc.setFontSize(22);
-        doc.setTextColor(4, 120, 87); // Emerald 700
-        doc.text("NutriGuard Weekly Report", 20, 20);
-
-        // Subtitle / Date Range
-        doc.setFontSize(12);
-        doc.setTextColor(100);
-        doc.text(`Week: ${weekRange}`, 20, 30);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 36);
-
-        // Weekly Summary Section
-        doc.setDrawColor(200);
-        doc.line(20, 45, 190, 45); // Divider
-
         doc.setFontSize(16);
-        doc.setTextColor(0);
-        doc.text("Summary", 20, 55);
-
-        doc.setFontSize(12);
-        doc.text(`Weekly Average Intake: ${avgCalories} kcal/day`, 20, 65);
-
-        const proteinStatus = insights.daysMetProtein === 7 ? "Perfect (7/7 days)" : `${insights.daysMetProtein}/7 days met goal`;
-        doc.text(`Protein Goal Status: ${proteinStatus}`, 20, 72);
-
-        // Daily Breakdown Table
-        doc.text("Daily Breakdown", 20, 90);
-
-        let yPos = 100;
+        doc.text('Laporan Nutrisi Mingguan', 14, 20);
         doc.setFontSize(10);
-        doc.setTextColor(100);
-        // Header
-        doc.text("Date", 20, yPos);
-        doc.text("Calories", 70, yPos);
-        doc.text("Protein", 100, yPos);
-        doc.text("Carbs", 130, yPos);
-        doc.text("Fat", 160, yPos);
-
-        yPos += 5;
-        doc.line(20, yPos, 190, yPos);
-        yPos += 10;
-
-        doc.setTextColor(0);
-        dailyBreakdown.forEach((day) => {
-            doc.text(day.date, 20, yPos);
-            doc.text(`${day.total_calories} kcal`, 70, yPos);
-            doc.text(`${day.macros.protein}g`, 100, yPos);
-            doc.text(`${day.macros.carbs}g`, 130, yPos);
-            doc.text(`${day.macros.fat}g`, 160, yPos);
-            yPos += 10;
+        doc.text(`Periode: ${weekRange}`, 14, 28);
+        doc.text(`Rata-rata kalori: ${avgCalories} kkal/hari`, 14, 34);
+        doc.autoTable({
+            startY: 42,
+            head: [['Tanggal', 'Kalori', 'Target', 'Protein', 'Karbo', 'Lemak']],
+            body: dailyBreakdown.map(d => [d.date, d.total_calories, d.target_calories, Math.round(d.macros.protein) + 'g', Math.round(d.macros.carbs) + 'g', Math.round(d.macros.fat) + 'g']),
+            styles: { fontSize: 9 },
         });
-
-        // Attempt to capture chart if available (optional/advanced, keeping simple text for now for reliability)
-        // const canvas = document.querySelector('canvas');
-        // if(canvas) {
-        //    const imgData = canvas.toDataURL("image/png", 1.0);
-        //    doc.addImage(imgData, 'PNG', 20, yPos + 10, 170, 80);
-        // }
-
-        doc.save("nutriguard-report.pdf");
-    };
+        doc.save(`laporan-nutrisi-${weekRange.replace(/\s/g, '-')}.pdf`);
+    }
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <div className="flex items-center gap-4">
-                    <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                        Weekly Report ({weekRange})
-                    </h2>
+        <AuthenticatedLayout user={auth.user} header="Laporan Mingguan">
+            <Head title="Laporan" />
+            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Minggu ini</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{weekRange}</p>
+                    </div>
+                    <button onClick={exportPDF} className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors">
+                        <Download className="w-4 h-4" /> PDF
+                    </button>
                 </div>
-            }
-            headerActions={
-                <button
-                    onClick={handleDownloadPDF}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold transition-colors shadow-sm"
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Download PDF
-                </button>
-            }
-        >
-            <Head title="Weekly Report" />
 
-            <div className="py-8">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                {/* Summary cards */}
+                <div className="grid grid-cols-3 gap-4">
+                    {[
+                        { label: 'Rata-rata', value: avgCalories.toLocaleString('id-ID'), unit: 'kkal/hari', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                        { label: 'Target Protein', value: `${insights.daysMetProtein}/${insights.totalDays}`, unit: 'hari tercapai', icon: Target, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                        { label: 'Hari Aktif', value: dailyBreakdown.filter(d => d.total_calories > 0).length, unit: `dari ${insights.totalDays} hari`, icon: Award, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-900/20' },
+                    ].map(s => {
+                        const Icon = s.icon;
+                        return (
+                            <div key={s.label} className={`${s.bg} rounded-2xl p-4`}>
+                                <Icon className={`w-5 h-5 ${s.color} mb-2`} />
+                                <div className="text-xl font-extrabold text-gray-900 dark:text-white">{s.value}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">{s.unit}</div>
+                                <div className="text-[10px] text-gray-400 mt-0.5">{s.label}</div>
+                            </div>
+                        );
+                    })}
+                </div>
 
-                    {/* Top Section: Chart & Insights */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Weekly Average Chart Card */}
-                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm animate-fade-in-up">
-                            <div className="mb-6">
-                                <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Calorie Intake</div>
-                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                                    Weekly Average: {avgCalories.toLocaleString()} kcal/day
-                                </h3>
-                                <div className="text-sm text-emerald-500 font-medium">
-                                    {weekRange} <span className="text-emerald-600 ml-2">↑ 5% vs last week</span>
+                {/* Calorie trend chart */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Tren Kalori vs Target</h3>
+                    <div className="h-52"><Line data={lineChart} options={{ ...chartOpts, plugins: { legend: { display: true, position: 'bottom', labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 10 } } } }} /></div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Macro breakdown */}
+                    <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Breakdown Makro Harian</h3>
+                        <div className="h-52"><Bar data={barChart} options={barOpts} /></div>
+                    </div>
+
+                    {/* Top foods */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Makanan Sering</h3>
+                        <div className="space-y-3">
+                            {Object.entries(topFoods ?? {}).slice(0, 5).map(([name, count], i) => (
+                                <div key={name} className="flex items-center gap-3">
+                                    <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                                        {i + 1}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{name}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">{count}× minggu ini</div>
+                                    </div>
                                 </div>
-                            </div>
-                            {/* Height constrained for chart */}
-                            <div className="h-64">
-                                <WeeklyTrendChart chartData={weeklyChartData} />
-                            </div>
+                            ))}
+                            {Object.keys(topFoods ?? {}).length === 0 && (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Belum ada data</p>
+                            )}
                         </div>
+                    </div>
+                </div>
 
-                        <div className="space-y-6 animate-fade-in-up animation-delay-200">
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Weekly Insights</h3>
-
-                                {/* Insight 1 */}
-                                {/* Insight 1 */}
-                                {(() => {
-                                    const isPerfect = insights.daysMetProtein === 7;
+                {/* Daily breakdown table */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                    <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Detail Per Hari</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-gray-100 dark:border-gray-800">
+                                    {['Tanggal', 'Kalori', 'Target', 'Protein', 'Karbo', 'Lemak', 'Status'].map(h => (
+                                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {dailyBreakdown.map((d, i) => {
+                                    const pct    = d.target_calories > 0 ? (d.total_calories / d.target_calories) * 100 : 0;
+                                    const status = d.total_calories === 0 ? 'Tidak ada data' : pct > 115 ? 'Melebihi' : pct >= 80 ? 'Tercapai' : 'Kurang';
+                                    const scls   = status === 'Tercapai' ? 'text-emerald-600 dark:text-emerald-400' : status === 'Melebihi' ? 'text-red-500' : status === 'Kurang' ? 'text-amber-500' : 'text-gray-400';
                                     return (
-                                        <div className={`mb-4 p-4 rounded-xl flex gap-4 ${isPerfect
-                                            ? 'bg-emerald-50 dark:bg-emerald-900/20'
-                                            : 'bg-amber-50 dark:bg-amber-900/20'
-                                            }`}>
-                                            <div className={`mt-1 ${isPerfect ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                {isPerfect ? (
-                                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                                ) : (
-                                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <div className={`font-bold ${isPerfect ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                                                    {isPerfect ? 'Great job!' : 'Keep going!'}
-                                                </div>
-                                                <div className={`text-sm ${isPerfect ? 'text-emerald-600 dark:text-emerald-300' : 'text-amber-600 dark:text-amber-300'}`}>
-                                                    You met your protein goal on {insights.daysMetProtein} out of {insights.totalDays} days.
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <tr key={i} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                            <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{d.date}</td>
+                                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{d.total_calories}</td>
+                                            <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{d.target_calories}</td>
+                                            <td className="px-4 py-3 text-blue-600 dark:text-blue-400">{Math.round(d.macros.protein)}g</td>
+                                            <td className="px-4 py-3 text-amber-600 dark:text-amber-400">{Math.round(d.macros.carbs)}g</td>
+                                            <td className="px-4 py-3 text-rose-600 dark:text-rose-400">{Math.round(d.macros.fat)}g</td>
+                                            <td className="px-4 py-3"><span className={`text-xs font-semibold ${scls}`}>{status}</span></td>
+                                        </tr>
                                     );
-                                })()}
-
-                                {/* Insight 2 */}
-                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex gap-4">
-                                    <div className="text-blue-500 mt-1">
-                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-blue-700 dark:text-blue-400">Quick Tip</div>
-                                        <div className="text-sm text-blue-600 dark:text-blue-300">
-                                            Adding a protein shake can help you reach your goals on busy days.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                })}
+                            </tbody>
+                        </table>
                     </div>
-
-                    {/* Bottom Section: Breakdown + Top Foods */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Left: Day Breakdown List */}
-                        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden animate-fade-in-up animation-delay-400">
-                            <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Day-by-Day Breakdown</h3>
-                            </div>
-                            <div>
-                                {dailyBreakdown.map((day, ix) => (
-                                    <DayBreakdown key={ix} day={day} />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Right: Top Foods */}
-                        <div className="animate-fade-in-up animation-delay-400">
-                            <TopFoodsList foods={topFoods} />
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </AuthenticatedLayout>

@@ -1,280 +1,238 @@
+import { useState } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
-import { CheckCircle, AlertTriangle, RefreshCw, Circle, Fish, Leaf, Beef, ChefHat, Zap, Sparkles, Carrot, Soup, Coffee, Edit3 } from 'lucide-react';
-import MealSelectorModal from '@/Components/Modals/MealSelectorModal';
-import { RECOMMENDATIONS } from '@/Data/RecommendedMeals'; // Import our new data
+import { CalendarDays, Plus, Trash2, X, Coffee, Sun, Sunset, Moon, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const MEAL_META = {
+    breakfast: { label: 'Sarapan',     icon: Coffee,  color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20',   border: 'border-amber-200 dark:border-amber-800' },
+    lunch:     { label: 'Makan Siang', icon: Sun,     color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800' },
+    dinner:    { label: 'Makan Malam', icon: Sunset,  color: 'text-violet-500',  bg: 'bg-violet-50 dark:bg-violet-900/20',  border: 'border-violet-200 dark:border-violet-800' },
+    snack:     { label: 'Snack',       icon: Moon,    color: 'text-orange-500',  bg: 'bg-orange-50 dark:bg-orange-900/20',  border: 'border-orange-200 dark:border-orange-800' },
+};
 
-export default function MealPlanner({ auth }) {
-    // Custom Scrollbar Styles
-    // Custom Scrollbar Styles moved to app.css
-
-    // 2. STATE MANAGEMENT
-    // Initial state: Pre-fill with first 7 items from RECOMMENDATIONS
-    const [weeklyPlan, setWeeklyPlan] = useState(() => {
-        return DAYS.map((day, index) => ({
-            day: day,
-            meal: RECOMMENDATIONS[index % 10] // Just pick first 10 nicely
-        }));
+function AddMealModal({ date, mealType, calorieGoal, onClose }) {
+    const { data, setData, post, processing, errors } = useForm({
+        planned_date: date,
+        meal_type:    mealType,
+        name:         '',
+        calories:     '',
+        protein:      '',
+        carbs:        '',
+        fat:          '',
+        notes:        '',
     });
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedDayIndex, setSelectedDayIndex] = useState(null);
-
-    // 3. CORE FUNCTIONS
-
-    // A. Dynamic Stats Calculation
-    const { totalBudget, proteinScore, scoreChange } = useMemo(() => {
-        let budget = 0;
-        let safeDays = 0;
-
-        weeklyPlan.forEach((plan) => {
-            if (!plan.meal) return;
-            budget += plan.meal.price;
-
-            const tags = plan.meal.tags || [];
-            const isSafe = tags.some(t =>
-                t.includes('Animal') ||
-                t.includes('Fish') ||
-                t.includes('Omega') ||
-                t.includes('Seafood') ||
-                (t.includes('Protein') && !t.includes('Plant'))
-            );
-            if (isSafe) safeDays++;
-        });
-
-        const score = Math.round((safeDays / 7) * 100);
-        const change = Math.floor(Math.random() * 5) + 1; // Mock change
-
-        return { totalBudget: budget, proteinScore: score, scoreChange: change };
-    }, [weeklyPlan]);
-
-    // B. Generate Logic
-    const handleGeneratePlan = () => {
-        const shuffled = [...RECOMMENDATIONS].sort(() => 0.5 - Math.random());
-        const newPlan = DAYS.map((day, index) => ({
-            day: day,
-            meal: shuffled[index % shuffled.length]
-        }));
-        setWeeklyPlan(newPlan);
-    };
-
-    // Modal Handlers
-    const openMealSelector = (index) => {
-        setSelectedDayIndex(index);
-        setIsModalOpen(true);
-    };
-
-    const handleSelectMeal = (meal) => {
-        if (selectedDayIndex !== null) {
-            const newPlan = [...weeklyPlan];
-            newPlan[selectedDayIndex].meal = meal;
-            setWeeklyPlan(newPlan);
-        }
-        setIsModalOpen(false);
-        setSelectedDayIndex(null);
-    };
-
-    // Helper functions
-    const getDailyStatus = (tags) => {
-        if (!tags) return 'warning';
-        const isSafe = tags.some(t => t.includes('Animal') || t.includes('Fish') || t.includes('Omega') || t.includes('Seafood') || (t.includes('Protein') && !t.includes('Plant')));
-        return isSafe ? 'safe' : 'warning';
-    };
-
-    const getIconElement = (code) => {
-        const props = "w-6 h-6";
-        // Map icon codes from RECOMMENDATIONS
-        switch (code) {
-            case 'beef': return <Beef className={`${props} text-red-600`} />;
-            case 'fish': return <Fish className={`${props} text-blue-600`} />;
-            case 'egg': return <Circle className={`${props} text-yellow-600`} />;
-            case 'chicken': return <ChefHat className={`${props} text-orange-600`} />;
-            case 'carrot': return <Carrot className={`${props} text-orange-500`} />;
-            case 'soup': return <Soup className={`${props} text-amber-600`} />;
-            case 'coffee': return <Coffee className={`${props} text-amber-700`} />;
-            default: return <Leaf className={`${props} text-green-600`} />;
-        }
-    };
-
-    const getTagIcon = (tag) => {
-        if (tag.includes('Animal') || tag.includes('Beef')) return <Beef className="w-3 h-3" />;
-        if (tag.includes('Fish') || tag.includes('Omega') || tag.includes('Seafood')) return <Fish className="w-3 h-3" />;
-        if (tag.includes('Plant') || tag.includes('Fiber') || tag.includes('Vegetable') || tag.includes('Vitamin')) return <Leaf className="w-3 h-3" />;
-        if (tag.includes('Iron')) return <Zap className="w-3 h-3" />;
-        if (tag.includes('MPASI')) return <Circle className="w-3 h-3" />;
-        return <Circle className="w-3 h-3" />;
-    };
-
-    const formatRp = (num) => {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num).replace('Rp', 'Rp ');
-    };
-
-    const boosters = [
-        { name: 'Chicken Liver', benefit: 'High Iron', icon: <Beef className="w-4 h-4 text-emerald-600" />, color: 'bg-emerald-100' },
-        { name: 'Catfish (Lele)', benefit: 'High Protein', icon: <Fish className="w-4 h-4 text-gray-600" />, color: 'bg-gray-100' },
-        { name: 'Tempeh', benefit: 'Plant Iron', icon: <Leaf className="w-4 h-4 text-gray-600" />, color: 'bg-gray-100' },
-        { name: 'Spinach', benefit: 'Vitamin A', icon: <Leaf className="w-4 h-4 text-emerald-600" />, color: 'bg-emerald-100' },
-    ];
+    function submit(e) {
+        e.preventDefault();
+        post(route('meal-planner.store'), { onSuccess: onClose });
+    }
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Family Growth Plan</h2>}
-        >
-            <Head title="Family Growth Plan" />
-
-
-            <div className="h-[calc(100vh-8.5rem)] flex gap-4 py-4 overflow-hidden text-gray-800 font-sans">
-
-                {/* LEFT CONTENT AREA */}
-                <div className="flex-1 flex flex-col gap-4 min-w-0 h-full">
-
-                    {/* Top Stats Cards */}
-                    <div className="shrink-0 grid grid-cols-2 gap-4 h-32 animate-fade-in-up">
-                        {/* Protein Score */}
-                        <div className="bg-white dark:bg-gray-800 rounded-[1.5rem] p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center h-full relative overflow-hidden group">
-                            <div className="absolute right-0 bottom-0 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <Beef className="w-32 h-32" />
-                            </div>
-                            <div className="relative z-10">
-                                <h3 className="text-gray-400 dark:text-gray-500 font-bold text-xs uppercase tracking-widest mb-0.5">Protein Score</h3>
-                                <div className="text-4xl font-extrabold text-gray-900 dark:text-white mb-0.5">{proteinScore}%</div>
-                                <div className="text-emerald-500 font-bold text-[10px] bg-emerald-50 w-fit px-2 py-0.5 rounded-full">+{scoreChange}% vs last week</div>
-                            </div>
-                        </div>
-
-                        {/* Budget Est */}
-                        <div className="bg-white dark:bg-gray-800 rounded-[1.5rem] p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center h-full relative overflow-hidden group">
-                            <div className="absolute right-0 bottom-0 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <RefreshCw className="w-32 h-32" />
-                            </div>
-                            <div className="relative z-10">
-                                <h3 className="text-gray-400 dark:text-gray-500 font-bold text-xs uppercase tracking-widest mb-0.5">Budget Est</h3>
-                                <div className="text-3xl font-extrabold text-gray-900 dark:text-white mb-0.5 leading-tight">
-                                    {formatRp(totalBudget).replace(',00', '')}
-                                </div>
-                                <div className="text-red-500 font-bold text-[10px] bg-red-50 w-fit px-2 py-0.5 rounded-full">based on market avg</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Weekly Schedule Grid */}
-                    <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 p-3 flex flex-col shadow-sm animate-fade-in-up animation-delay-200">
-
-                        <div className="flex-1 overflow-x-auto custom-scrollbar flex items-stretch pb-1">
-                            <div className="flex gap-3 min-w-max h-full">
-                                {weeklyPlan.map((plan, idx) => {
-                                    const status = getDailyStatus(plan.meal.tags);
-                                    return (
-                                        <div key={idx} className="w-48 flex flex-col h-full">
-                                            {/* Day Header */}
-                                            <div className="text-gray-400 font-bold mb-2 uppercase text-[10px] tracking-widest text-center">
-                                                {plan.day}
-                                            </div>
-
-                                            {/* Menu Card - INTERACTIVE */}
-                                            {/* Added onClick listener to open modal */}
-                                            <button
-                                                onClick={() => openMealSelector(idx)}
-                                                className={`flex-1 rounded-2xl p-4 w-full text-left ${status === 'safe' ? 'bg-gray-50 dark:bg-gray-700/30' : 'bg-amber-50 dark:bg-amber-900/20'} flex flex-col relative group transition-all hover:bg-opacity-80 hover:shadow-md cursor-pointer border border-transparent hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50`}
-                                            >
-                                                {/* Hover Edit Icon */}
-                                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1.5 rounded-full shadow-sm text-emerald-600">
-                                                    <Edit3 className="w-3.5 h-3.5" />
-                                                </div>
-
-                                                <div className="flex-1 text-center flex flex-col items-center justify-center">
-                                                    <div className="mb-2 p-2 bg-white dark:bg-gray-800 rounded-full shadow-sm">
-                                                        {getIconElement(plan.meal.iconCode)}
-                                                    </div>
-                                                    <div className="font-bold text-base text-gray-900 dark:text-white leading-tight line-clamp-2 mb-1">
-                                                        {plan.meal.name}
-                                                    </div>
-                                                </div>
-
-                                                {/* Tags */}
-                                                <div className="flex flex-wrap justify-center gap-2 mt-3 w-full">
-                                                    {plan.meal.tags.slice(0, 3).map((tag, tIdx) => ( // limit to 3 tags for layout safety
-                                                        <span key={tIdx} className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm max-w-full truncate ${tag.includes('Animal') ? 'bg-emerald-100 text-emerald-800' :
-                                                            tag.includes('Iron') ? 'bg-orange-100 text-orange-800' :
-                                                                tag.includes('Omega') ? 'bg-blue-100 text-blue-800' :
-                                                                    'bg-yellow-100 text-yellow-800'
-                                                            }`}>
-                                                            {getTagIcon(tag)} {tag.replace('Animal Protein', 'Animal')}
-                                                        </span>
-                                                    ))}
-                                                    {plan.meal.tags.includes('MPASI') && (
-                                                        <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-100 text-blue-800 shadow-sm">
-                                                            👶 MPASI
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </button>
-
-                                            {/* Bottom Status Indicator */}
-                                            <div className={`mt-2 py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wide ${status === 'safe'
-                                                ? 'bg-emerald-100 text-emerald-800'
-                                                : 'bg-amber-100 text-amber-800'
-                                                }`}>
-                                                {status === 'safe'
-                                                    ? <><CheckCircle className="w-3 h-3 shrink-0" /> Safe</>
-                                                    : <><AlertTriangle className="w-3 h-3 shrink-0" /> Low Prot</>
-                                                }
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl">
+                <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+                    <h3 className="font-bold text-gray-900 dark:text-white">Tambah {MEAL_META[mealType]?.label}</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
                 </div>
-
-                {/* RIGHT SIDEBAR - Budget Growth Boosters */}
-                <div className="w-[18rem] shrink-0 h-full bg-white dark:bg-gray-800 rounded-[1.5rem] p-5 shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col animate-fade-in-up animation-delay-400">
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-emerald-500" />
-                        Budget Boosters
-                    </h3>
-
-                    <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
-                        {boosters.map((booster, idx) => (
-                            <div key={idx} className={`p-3 rounded-2xl flex items-center gap-3 transition-transform hover:scale-[1.02] cursor-pointer border border-transparent ${idx === 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100' : 'bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100'
-                                }`}>
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${booster.color}`}>
-                                    {booster.icon}
-                                </div>
-                                <div>
-                                    <div className="font-bold text-gray-900 dark:text-white text-sm">{booster.name}</div>
-                                    <div className="text-[10px] text-gray-500">{booster.benefit}</div>
-                                </div>
+                <form onSubmit={submit} className="p-5 space-y-4">
+                    <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Nama Makanan *</label>
+                        <input type="text" value={data.name} onChange={e => setData('name', e.target.value)} required
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        {[
+                            { key: 'calories', label: 'Kalori (kkal)' },
+                            { key: 'protein',  label: 'Protein (g)' },
+                            { key: 'carbs',    label: 'Karbo (g)' },
+                            { key: 'fat',      label: 'Lemak (g)' },
+                        ].map(f => (
+                            <div key={f.key}>
+                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">{f.label}</label>
+                                <input type="number" min="0" value={data[f.key]} onChange={e => setData(f.key, e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                             </div>
                         ))}
                     </div>
-
-                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <button
-                            onClick={handleGeneratePlan}
-                            className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-[1.02] active:scale-95 text-sm flex items-center justify-center gap-2">
-                            <Sparkles className="w-4 h-4" />
-                            Generate Plan
+                    <div>
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Catatan</label>
+                        <textarea value={data.notes} onChange={e => setData('notes', e.target.value)} rows={2}
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
+                    </div>
+                    <div className="flex gap-3">
+                        <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium">Batal</button>
+                        <button type="submit" disabled={processing} className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl text-sm disabled:opacity-60">
+                            {processing ? 'Menyimpan...' : 'Simpan'}
                         </button>
                     </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+export default function MealPlanner({ auth, days, weekStart, weekEnd, calorieGoal }) {
+    const [modal, setModal]   = useState(null); // { date, mealType }
+    const [showDay, setShowDay] = useState(null);
+
+    function navigate(dir) {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + dir * 7);
+        router.get(route('meal-planner'), { week_start: d.toISOString().slice(0, 10) }, { preserveState: true });
+    }
+
+    function deletePlan(id) {
+        if (!confirm('Hapus rencana ini?')) return;
+        router.delete(route('meal-planner.destroy', id), { preserveState: true });
+    }
+
+    const totalCalsPerDay = (day) => day.meals.reduce((s, m) => s + (m.calories || 0), 0);
+
+    return (
+        <AuthenticatedLayout user={auth.user} header="Meal Planner">
+            <Head title="Meal Planner" />
+
+            {modal && (
+                <AddMealModal
+                    date={modal.date}
+                    mealType={modal.mealType}
+                    calorieGoal={calorieGoal}
+                    onClose={() => setModal(null)}
+                />
+            )}
+
+            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+
+                {/* Week navigator */}
+                <div className="flex items-center justify-between bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+                    <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <div className="text-center">
+                        <div className="flex items-center gap-2">
+                            <CalendarDays className="w-4 h-4 text-emerald-500" />
+                            <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                                {new Date(weekStart).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })} –{' '}
+                                {new Date(weekEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </span>
+                        </div>
+                    </div>
+                    <button onClick={() => navigate(1)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    </button>
                 </div>
 
-            </div>
+                {/* Mobile: day selector */}
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:hidden">
+                    {days.map((day, i) => {
+                        const isToday = day.date === new Date().toISOString().slice(0, 10);
+                        const active  = showDay === null ? isToday : showDay === i;
+                        return (
+                            <button key={i} onClick={() => setShowDay(i)}
+                                className={`flex flex-col items-center px-3 py-2 rounded-xl flex-shrink-0 transition-all ${active ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'}`}>
+                                <span className="text-[10px] font-medium">{day.label}</span>
+                                <span className="text-sm font-bold">{new Date(day.date).getDate()}</span>
+                            </button>
+                        );
+                    })}
+                </div>
 
-            {/* MEAL SELECTION MODAL */}
-            <MealSelectorModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSelect={handleSelectMeal}
-                currentDay={selectedDayIndex !== null ? weeklyPlan[selectedDayIndex].day : ''}
-            />
+                {/* Desktop: full week grid */}
+                <div className="hidden sm:grid grid-cols-7 gap-3">
+                    {days.map((day, i) => {
+                        const isToday  = day.date === new Date().toISOString().slice(0, 10);
+                        const dayTotal = totalCalsPerDay(day);
+                        const overBudget = dayTotal > calorieGoal;
+                        return (
+                            <div key={i} className={`bg-white dark:bg-gray-900 rounded-2xl border overflow-hidden ${isToday ? 'border-emerald-400 dark:border-emerald-600 shadow-lg shadow-emerald-500/10' : 'border-gray-100 dark:border-gray-800'}`}>
+                                <div className={`p-2 text-center ${isToday ? 'bg-emerald-500' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                                    <div className={`text-[10px] font-medium ${isToday ? 'text-emerald-100' : 'text-gray-500 dark:text-gray-400'}`}>{day.label}</div>
+                                    <div className={`text-base font-extrabold ${isToday ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{new Date(day.date).getDate()}</div>
+                                    {dayTotal > 0 && (
+                                        <div className={`text-[10px] font-medium mt-0.5 ${overBudget ? 'text-red-300' : isToday ? 'text-emerald-100' : 'text-gray-400'}`}>
+                                            {dayTotal} kkal
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-2 space-y-1.5">
+                                    {Object.entries(MEAL_META).map(([key, meta]) => {
+                                        const Icon    = meta.icon;
+                                        const dayMeals = day.meals.filter(m => m.meal_type === key);
+                                        return (
+                                            <div key={key} className={`rounded-lg p-1.5 ${meta.bg}`}>
+                                                <div className={`flex items-center gap-1 mb-1 ${meta.color}`}>
+                                                    <Icon className="w-3 h-3" />
+                                                    <span className="text-[10px] font-semibold">{meta.label}</span>
+                                                </div>
+                                                {dayMeals.map(m => (
+                                                    <div key={m.id} className="flex items-center justify-between gap-1 mb-0.5">
+                                                        <span className="text-[10px] text-gray-700 dark:text-gray-300 truncate">{m.name}</span>
+                                                        <button onClick={() => deletePlan(m.id)} className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+                                                            <X className="w-2.5 h-2.5" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button onClick={() => setModal({ date: day.date, mealType: key })}
+                                                    className={`w-full flex items-center justify-center gap-0.5 py-0.5 rounded text-[10px] font-medium ${meta.color} hover:bg-white/50 dark:hover:bg-black/20 transition-colors`}>
+                                                    <Plus className="w-2.5 h-2.5" /> Tambah
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Mobile: selected day detail */}
+                <div className="sm:hidden">
+                    {(() => {
+                        const idx = showDay ?? days.findIndex(d => d.date === new Date().toISOString().slice(0, 10));
+                        const day = days[idx < 0 ? 0 : idx];
+                        if (!day) return null;
+                        return (
+                            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                                <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white">{day.full_label}</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        {totalCalsPerDay(day)} kkal dari {calorieGoal} kkal target
+                                    </p>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                    {Object.entries(MEAL_META).map(([key, meta]) => {
+                                        const Icon     = meta.icon;
+                                        const dayMeals = day.meals.filter(m => m.meal_type === key);
+                                        return (
+                                            <div key={key} className={`rounded-xl border p-3 ${meta.bg} ${meta.border}`}>
+                                                <div className={`flex items-center gap-2 mb-2 ${meta.color}`}>
+                                                    <Icon className="w-4 h-4" />
+                                                    <span className="text-sm font-semibold">{meta.label}</span>
+                                                </div>
+                                                {dayMeals.map(m => (
+                                                    <div key={m.id} className="flex items-center justify-between gap-2 mb-1.5">
+                                                        <div>
+                                                            <span className="text-sm text-gray-700 dark:text-gray-300">{m.name}</span>
+                                                            {m.calories && <span className="text-xs text-gray-500 ml-2">{m.calories} kkal</span>}
+                                                        </div>
+                                                        <button onClick={() => deletePlan(m.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button onClick={() => setModal({ date: day.date, mealType: key })}
+                                                    className={`w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold ${meta.color} hover:bg-white/60 dark:hover:bg-black/20 transition-colors`}>
+                                                    <Plus className="w-3 h-3" /> Tambah
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            </div>
         </AuthenticatedLayout>
     );
 }

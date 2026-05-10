@@ -1,210 +1,201 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
+import { Head } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import axios from 'axios';
+import { Send, MessageCircle } from 'lucide-react';
 
 export default function ChatIndex({ auth, contacts }) {
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [inputMessage, setInputMessage] = useState('');
-    const messagesEndRef = useRef(null);
-    const pollInterval = useRef(null);
+    const [selected,  setSelected]  = useState(null);
+    const [messages,  setMessages]  = useState([]);
+    const [input,     setInput]     = useState('');
+    const [sending,   setSending]   = useState(false);
+    const bottomRef  = useRef(null);
+    const pollRef    = useRef(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    async function loadMessages(userId) {
+        try {
+            const res = await axios.get(route('chat.show', userId));
+            setMessages(res.data);
+            await axios.post(route('chat.markRead', userId));
+        } catch {}
+    }
+
+    function selectUser(contact) {
+        setSelected(contact);
+        loadMessages(contact.id);
+        clearInterval(pollRef.current);
+        pollRef.current = setInterval(() => loadMessages(contact.id), 3000);
+    }
+
+    async function sendMessage(e) {
+        e.preventDefault();
+        if (!input.trim() || !selected || sending) return;
+        setSending(true);
+        try {
+            await axios.post(route('chat.store'), { recipient_id: selected.id, message: input.trim() });
+            setInput('');
+            await loadMessages(selected.id);
+        } catch {}
+        setSending(false);
+    }
 
     useEffect(() => {
-        scrollToBottom();
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    const selectUser = async (user) => {
-        // Mark as read immediately when selecting
-        if (user.unread_count > 0) {
-            try {
-                await axios.post(route('chat.markRead', user.id));
-                // Update local state and global props
-                user.unread_count = 0;
-                router.reload({ only: ['auth', 'contacts'] });
-            } catch (e) {
-                console.error("Failed to mark read", e);
-            }
-        }
+    useEffect(() => () => clearInterval(pollRef.current), []);
 
-        setSelectedUser(user);
-        setMessages([]);
-        loadMessages(user.id);
+    function formatTime(dateStr) {
+        return new Date(dateStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
 
-        // Start polling
-        if (pollInterval.current) clearInterval(pollInterval.current);
-        pollInterval.current = setInterval(() => loadMessages(user.id), 3000);
-    };
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        const today = new Date();
+        if (d.toDateString() === today.toDateString()) return 'Hari ini';
+        const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+        if (d.toDateString() === yesterday.toDateString()) return 'Kemarin';
+        return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' });
+    }
 
-    const loadMessages = async (userId) => {
-        try {
-            const response = await axios.get(route('chat.show', userId));
-            setMessages(response.data);
-        } catch (error) {
-            console.error("Failed to load messages", error);
-        }
-    };
-
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        if (!inputMessage.trim() || !selectedUser) return;
-
-        const msg = inputMessage;
-        setInputMessage(''); // Optimistic clear
-
-        try {
-            await axios.post(route('chat.store'), {
-                recipient_id: selectedUser.id,
-                message: msg
-            });
-            loadMessages(selectedUser.id);
-        } catch (error) {
-            console.error("Failed to send", error);
-        }
-    };
-
-    // Cleanup polling
-    useEffect(() => {
-        return () => {
-            if (pollInterval.current) clearInterval(pollInterval.current);
-        };
-    }, []);
+    // Group messages by date
+    const grouped = messages.reduce((acc, msg) => {
+        const key = new Date(msg.created_at).toDateString();
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(msg);
+        return acc;
+    }, {});
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Family Chat</h2>}
-        >
+        <AuthenticatedLayout user={auth.user} header="Family Chat">
             <Head title="Family Chat" />
+            <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
 
-            {/* FULL SCREEN CONTAINER: removed py-6, added h-[calc(100vh-80px)] to fit tight space below header */}
-            <div className="h-[calc(100vh-85px)] w-full">
-                <div className="max-w-7xl mx-auto h-full flex bg-white dark:bg-gray-800 border-x border-gray-200 dark:border-gray-700 shadow-sm">
-
-                    {/* Sidebar: Contacts */}
-                    <div className="w-1/3 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-                        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                            <h3 className="font-bold text-gray-700 dark:text-gray-300">Family Members</h3>
-                        </div>
-                        <div className="flex-1 overflow-y-auto">
-                            {contacts.length === 0 ? (
-                                <div className="p-4 text-gray-500 text-center text-sm">No family members found.</div>
-                            ) : (
-                                contacts.map(contact => (
-                                    <button
-                                        key={contact.id}
-                                        onClick={() => selectUser(contact)}
-                                        className={`w-full p-4 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left border-b border-gray-100 dark:border-gray-700 ${selectedUser?.id === contact.id ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''
-                                            }`}
-                                    >
-                                        <div className="relative">
-                                            <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-xl border border-gray-200">
-                                                {contact.name.charAt(0)}
-                                            </div>
-                                            {contact.unread_count > 0 && (
-                                                <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full ring-2 ring-white">
-                                                    {contact.unread_count}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <div className="font-medium text-gray-900 dark:text-white truncate">{contact.name}</div>
-                                            </div>
-                                            <div className={`text-xs truncate ${contact.unread_count > 0 ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-500'}`}>
-                                                {contact.last_message ? (
-                                                    <span>{contact.last_message.sender_id === auth.user.id ? 'You: ' : ''}{contact.last_message.message}</span>
-                                                ) : (
-                                                    <span className="italic">Start a conversation</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))
-                            )}
+                {/* Contact list */}
+                <aside className={`w-full sm:w-72 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col ${selected ? 'hidden sm:flex' : 'flex'}`}>
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4 text-emerald-500" />
+                            <span className="font-semibold text-sm text-gray-900 dark:text-white">Anggota Keluarga</span>
                         </div>
                     </div>
-
-                    {/* Main Chat Area */}
-                    <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
-                        {selectedUser ? (
-                            <>
-                                {/* Chat Header */}
-                                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center gap-3 shadow-sm">
-                                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-lg">
-                                        {selectedUser.name.charAt(0)}
+                    <div className="flex-1 overflow-y-auto">
+                        {contacts.length === 0 ? (
+                            <div className="p-6 text-center">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Belum ada kontak. Undang anggota keluarga terlebih dahulu.</p>
+                            </div>
+                        ) : contacts.map(c => (
+                            <button key={c.id} onClick={() => selectUser(c)}
+                                className={`w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${selected?.id === c.id ? 'bg-emerald-50 dark:bg-emerald-900/20 border-r-2 border-emerald-500' : ''}`}>
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                    {c.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{c.name}</span>
+                                        {c.unread_count > 0 && (
+                                            <span className="ml-2 flex-shrink-0 w-5 h-5 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                                {c.unread_count}
+                                            </span>
+                                        )}
                                     </div>
-                                    <div>
-                                        <div className="font-bold text-gray-900 dark:text-white">{selectedUser.name}</div>
-                                        <div className="text-xs text-emerald-500 flex items-center gap-1">
-                                            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Online
-                                        </div>
+                                    {c.last_message && (
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{c.last_message}</p>
+                                    )}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </aside>
+
+                {/* Chat area */}
+                <div className={`flex-1 flex flex-col ${!selected ? 'hidden sm:flex' : 'flex'}`}>
+                    {!selected ? (
+                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mb-4">
+                                <MessageCircle className="w-8 h-8 text-emerald-500" />
+                            </div>
+                            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Mulai Percakapan</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Pilih anggota keluarga untuk mulai chat</p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Chat header */}
+                            <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex-shrink-0">
+                                <button onClick={() => setSelected(null)} className="sm:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
+                                    {selected.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div className="font-semibold text-sm text-gray-900 dark:text-white">{selected.name}</div>
+                                    <div className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">Online</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Messages List */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                    {messages.length === 0 && (
-                                        <div className="text-center text-gray-400 mt-10">
-                                            <p>Say hello to {selectedUser.name}!</p>
+                            {/* Messages */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-950">
+                                {messages.length === 0 && (
+                                    <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
+                                        Mulai percakapan dengan {selected.name}
+                                    </div>
+                                )}
+                                {Object.entries(grouped).map(([dateKey, msgs]) => (
+                                    <div key={dateKey}>
+                                        <div className="flex items-center gap-3 my-4">
+                                            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+                                            <span className="text-xs text-gray-400 dark:text-gray-500 px-2">{formatDate(msgs[0].created_at)}</span>
+                                            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
                                         </div>
-                                    )}
-                                    {messages.map((msg) => {
-                                        const isMe = msg.sender_id === auth.user.id;
-                                        return (
-                                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${isMe
-                                                    ? 'bg-emerald-500 text-white rounded-br-none'
-                                                    : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-200 dark:border-gray-700'
-                                                    }`}>
-                                                    <p className="text-sm">{msg.message}</p>
-                                                    <div className={`text-[10px] mt-1 text-right ${isMe ? 'text-emerald-100' : 'text-gray-400'}`}>
-                                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {msgs.map(msg => {
+                                            const isSelf = msg.sender_id === auth.user.id;
+                                            return (
+                                                <div key={msg.id} className={`flex mb-2 ${isSelf ? 'justify-end' : 'justify-start'}`}>
+                                                    {!isSelf && (
+                                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 self-end">
+                                                            {selected.name.charAt(0)}
+                                                        </div>
+                                                    )}
+                                                    <div className={`max-w-xs lg:max-w-md ${isSelf ? 'items-end' : 'items-start'} flex flex-col`}>
+                                                        <div className={`px-4 py-2.5 rounded-2xl text-sm ${
+                                                            isSelf
+                                                                ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-br-sm'
+                                                                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 rounded-bl-sm'
+                                                        }`}>
+                                                            {msg.message}
+                                                        </div>
+                                                        <span className="text-[10px] text-gray-400 mt-1 px-1">{formatTime(msg.created_at)}</span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                    <div ref={messagesEndRef} />
-                                </div>
-
-                                {/* Input Area */}
-                                <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                                    <form onSubmit={sendMessage} className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={inputMessage}
-                                            onChange={(e) => setInputMessage(e.target.value)}
-                                            placeholder="Type a message..."
-                                            className="flex-1 rounded-full border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!inputMessage.trim()}
-                                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full p-2 w-10 h-10 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <svg className="w-5 h-5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                            </svg>
-                                        </button>
-                                    </form>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
-                                </div>
-                                <p className="text-lg font-medium">Select a family member to chat</p>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                                <div ref={bottomRef} />
                             </div>
-                        )}
-                    </div>
+
+                            {/* Input */}
+                            <form onSubmit={sendMessage} className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
+                                <input
+                                    type="text"
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    placeholder={`Pesan ke ${selected.name}...`}
+                                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
+                                />
+                                <button type="submit" disabled={!input.trim() || sending}
+                                    className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-50 transition-all">
+                                    <Send className="w-4 h-4" />
+                                </button>
+                            </form>
+                        </>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>

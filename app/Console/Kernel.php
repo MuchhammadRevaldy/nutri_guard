@@ -7,20 +7,20 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
-    /**
-     * Define the application's command schedule.
-     */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Reset scan count for all users every midnight (Business Rule: daily scan limit)
+        $schedule->call(function () {
+            \App\Models\User::query()->update([
+                'scan_count_today' => 0,
+                'scan_date'        => now()->toDateString(),
+            ]);
+        })->dailyAt('00:00')->name('reset-daily-scan-count');
     }
 
-    /**
-     * Register the commands for the application.
-     */
     protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }

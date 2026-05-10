@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\MealPlanController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -48,17 +49,34 @@ Route::get('/dashboard', function () {
     // 3. Today's Logs
     $todaysLogs = \App\Models\FoodLog::where('family_member_id', $myself?->id)
         ->whereDate('eaten_at', now()->today())
-        ->orderBy('eaten_at', 'desc')
+        ->orderBy('eaten_at', 'asc')
         ->get();
 
     // 4. Calculate Daily Stats
+    $goalCalories = $myself?->daily_calorie_goal ?? 2000;
+    $totalCalories = $todaysLogs->sum('calories');
     $dailyStats = [
-        'calories' => $todaysLogs->sum('calories'),
-        'protein' => $todaysLogs->sum('protein'),
-        'carbs' => $todaysLogs->sum('carbs'),
-        'fat' => $todaysLogs->sum('fat'),
-        'goal_calories' => $myself?->daily_calorie_goal ?? 2000,
+        'calories'      => $totalCalories,
+        'protein'       => $todaysLogs->sum('protein'),
+        'carbs'         => $todaysLogs->sum('carbs'),
+        'fat'           => $todaysLogs->sum('fat'),
+        'goal_calories' => $goalCalories,
     ];
+
+    // Health risk warning: extreme calorie intake (Business Rule #4)
+    $healthWarning = null;
+    if ($totalCalories > $goalCalories * 1.5) {
+        $healthWarning = 'Peringatan Kesehatan: Asupan kalori hari ini (' . $totalCalories . ' kkal) sudah jauh melebihi target (' . $goalCalories . ' kkal).';
+    } elseif ($totalCalories < 500 && now()->hour >= 18) {
+        $healthWarning = 'Peringatan Kesehatan: Asupan kalori hari ini sangat rendah (' . $totalCalories . ' kkal). Pastikan kamu makan cukup.';
+    }
+
+    // 4b. Meal type breakdown
+    $mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+    $logsByMealType = [];
+    foreach ($mealTypes as $type) {
+        $logsByMealType[$type] = $todaysLogs->where('meal_type', $type)->values();
+    }
 
     // 5. Weekly Chart Data (Last 7 Days)
     $weeklyChartData = [
@@ -79,10 +97,13 @@ Route::get('/dashboard', function () {
     }
 
     return Inertia::render('Dashboard', [
-        'familyMembers' => $familyMembers,
-        'todaysLogs' => $todaysLogs,
-        'dailyStats' => $dailyStats,
+        'familyMembers'   => $familyMembers,
+        'todaysLogs'      => $todaysLogs,
+        'logsByMealType'  => $logsByMealType,
+        'dailyStats'      => $dailyStats,
         'weeklyChartData' => $weeklyChartData,
+        'healthWarning'   => $healthWarning ?? session('health_warning'),
+        'success'         => session('success'),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -186,9 +207,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/fitchef', [\App\Http\Controllers\FitChefController::class, 'index'])->name('fitchef.index');
     Route::post('/fitchef/generate', [\App\Http\Controllers\FitChefController::class, 'generate'])->name('fitchef.generate');
 
-    Route::get('/meal-planner', function () {
-        return Inertia::render('MealPlanner');
-    })->name('meal-planner');
+    // Meal Planner
+    Route::get('/meal-planner', [MealPlanController::class, 'index'])->name('meal-planner');
+    Route::post('/meal-planner', [MealPlanController::class, 'store'])->name('meal-planner.store');
+    Route::delete('/meal-planner/{id}', [MealPlanController::class, 'destroy'])->name('meal-planner.destroy');
 
     // Gemini Thinking Demo
     Route::get('/coba-deploy', function () {

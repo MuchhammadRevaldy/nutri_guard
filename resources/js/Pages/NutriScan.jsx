@@ -1,383 +1,258 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, router } from '@inertiajs/react';
-import Modal from '@/Components/Modal';
+import { Scan, Upload, Camera, X, AlertTriangle, CheckCircle, Edit2, FlipHorizontal } from 'lucide-react';
 
-export default function NutriScan({ auth, analysis, error }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        image: null,
+const MEAL_OPTIONS = [
+    { value: 'breakfast', label: 'Sarapan' },
+    { value: 'lunch',     label: 'Makan Siang' },
+    { value: 'dinner',    label: 'Makan Malam' },
+    { value: 'snack',     label: 'Snack' },
+];
+
+export default function NutriScan({ auth, analysis, error, scansUsed, scansRemaining, maxScans }) {
+    const [preview,      setPreview]      = useState(null);
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [facingMode,   setFacingMode]   = useState('environment');
+    const [isDragging,   setIsDragging]   = useState(false);
+    const [isEditing,    setIsEditing]    = useState(false);
+    const [editData,     setEditData]     = useState(null);
+    const videoRef  = useRef(null);
+    const canvasRef = useRef(null);
+    const streamRef = useRef(null);
+    const fileInput = useRef(null);
+
+    const { data, setData, post, processing } = useForm({ image: null });
+    const logForm = useForm({
+        food_name: analysis?.food_name ?? '',
+        calories:  analysis?.nutrition?.calories ?? 0,
+        protein:   analysis?.nutrition?.protein  ?? 0,
+        carbs:     analysis?.nutrition?.carbs    ?? 0,
+        fat:       analysis?.nutrition?.fat      ?? 0,
+        fiber:     analysis?.nutrition?.fiber    ?? 0,
+        sodium:    analysis?.nutrition?.sodium   ?? 0,
+        sugar:     analysis?.nutrition?.sugar    ?? 0,
+        image_url: analysis?.image_url ?? '',
+        portion:   '1 porsi',
+        meal_type: 'lunch',
     });
 
-    // Local state for UI preview before upload
-    const [preview, setPreview] = useState(analysis ? analysis.image_url : null);
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
-    const [showError, setShowError] = useState(false);
-    const [facingMode, setFacingMode] = useState('environment');
-
-    // Auto-show error if passed from backend
-    useEffect(() => {
-        if (error) {
-            setShowError(true);
-        }
-    }, [error]);
-
-    const videoRef = useRef(null);
-    const canvasRef = useRef(null);
-
-    // Create a local result state that can be populated from props
-    const result = analysis || null;
-
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setData('image', file);
-            setPreview(URL.createObjectURL(file));
-        }
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files[0];
-        if (file) {
-            setData('image', file);
-            setPreview(URL.createObjectURL(file));
-        }
-    };
-
-    const startCamera = async () => {
+    function openCamera() {
         setIsCameraOpen(true);
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: facingMode }
-            });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-        } catch (err) {
-            console.error("Error accessing camera:", err);
-            setIsCameraOpen(false);
-            alert("Could not access camera. Please allow permissions.");
-        }
-    };
-
-    const stopStreamOnly = () => {
-        const stream = videoRef.current?.srcObject;
-        if (stream) {
-            const tracks = stream.getTracks();
-            tracks.forEach(track => track.stop());
-        }
-    };
-
-    const stopCamera = () => {
-        stopStreamOnly();
+        navigator.mediaDevices.getUserMedia({ video: { facingMode } })
+            .then(s => { streamRef.current = s; if (videoRef.current) videoRef.current.srcObject = s; });
+    }
+    function closeCamera() {
+        streamRef.current?.getTracks().forEach(t => t.stop());
         setIsCameraOpen(false);
-    };
-
-    const switchCamera = async () => {
-        stopStreamOnly();
-        const newMode = facingMode === 'environment' ? 'user' : 'environment';
-        setFacingMode(newMode);
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: newMode }
-            });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-        } catch (err) {
-            console.error("Error switching camera:", err);
-            alert("Could not switch camera.");
-        }
-    };
-
-    const capturePhoto = () => {
-        if (videoRef.current && canvasRef.current) {
-            const context = canvasRef.current.getContext('2d');
-            // Set canvas dimensions to match video
-            canvasRef.current.width = videoRef.current.videoWidth;
-            canvasRef.current.height = videoRef.current.videoHeight;
-
-            context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-
-            canvasRef.current.toBlob((blob) => {
-                const file = new File([blob], "camera_capture.jpg", { type: "image/jpeg" });
-                setData('image', file);
-                setPreview(URL.createObjectURL(file));
-                stopCamera();
-            }, 'image/jpeg');
-        }
-    };
-
-    const submit = (e) => {
+    }
+    function capture() {
+        const canvas = canvasRef.current;
+        const video  = videoRef.current;
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        canvas.toBlob(blob => {
+            const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+            setData('image', file);
+            setPreview(canvas.toDataURL('image/jpeg'));
+            closeCamera();
+        }, 'image/jpeg');
+    }
+    function handleFile(file) {
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { alert('Ukuran file maksimal 5 MB'); return; }
+        setData('image', file);
+        const reader = new FileReader();
+        reader.onload = e => setPreview(e.target.result);
+        reader.readAsDataURL(file);
+    }
+    function handleDrop(e) { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); }
+    function handleAnalyze(e) { e.preventDefault(); post(route('nutriscan.analyze')); }
+    function handleLog(e) {
         e.preventDefault();
-        post(route('nutriscan.analyze'), {
-            onSuccess: () => {
-                // The page will reload with 'analysis' prop
-            }
-        });
-    };
+        if (isEditing && editData) Object.entries(editData).forEach(([k, v]) => logForm.setData(k, v));
+        logForm.post(route('nutriscan.log'));
+    }
+
+    const scanPct = maxScans > 0 ? ((maxScans - scansRemaining) / maxScans) * 100 : 0;
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">NutriScan AI</h2>}
-        >
-            <Head title="NutriScan AI" />
+        <AuthenticatedLayout user={auth.user} header="NutriScan">
+            <Head title="NutriScan" />
+            <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto space-y-6">
 
-            <div className="py-12 min-h-screen px-4 sm:px-0">
-                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
-
-                    {/* Header Text */}
-                    <div className="text-center space-y-2 animate-fade-in-up">
-                        <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">NutriScan AI</h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-lg">Upload a photo to get an instant nutritional analysis for your family.</p>
+                {/* Quota bar */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <Scan className="w-4 h-4 text-emerald-500" />
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">Kuota Scan Hari Ini</span>
+                        </div>
+                        <span className={`text-sm font-bold ${scansRemaining === 0 ? 'text-red-500' : scansRemaining <= 5 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                            {scansRemaining} tersisa
+                        </span>
                     </div>
-
-                    {/* Camera Modal / Overlay */}
-                    {isCameraOpen && (
-                        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col items-center justify-center p-4">
-                            <div className="relative w-full max-w-2xl bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-700">
-                                <video ref={videoRef} autoPlay playsInline className="w-full h-auto"></video>
-
-                                {/* Flip Camera Button */}
-                                <button
-                                    onClick={switchCamera}
-                                    className="absolute top-4 right-4 bg-black/50 p-3 rounded-full text-white backdrop-blur-sm hover:bg-black/70 transition-all"
-                                >
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                </button>
-
-                                <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-6">
-                                    <button
-                                        onClick={stopCamera}
-                                        className="px-6 py-3 bg-red-500/80 hover:bg-red-600/80 text-white rounded-full font-bold backdrop-blur-sm transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={capturePhoto}
-                                        className="px-8 py-3 bg-white hover:bg-gray-200 text-black rounded-full font-bold shadow-lg transition-all transform hover:scale-105"
-                                    >
-                                        Capture
-                                    </button>
-                                </div>
-                            </div>
-                            <canvas ref={canvasRef} className="hidden"></canvas>
-                        </div>
-                    )}
-
-                    {/* Upload Section */}
-                    {!result ? (
-                        <div className="max-w-3xl mx-auto">
-                            <form onSubmit={submit} className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-700 p-6 md:p-12 text-center transition-all hover:border-emerald-500 dark:hover:border-emerald-500 group relative animate-fade-in-up animation-delay-200">
-
-                                {preview ? (
-                                    <div className="space-y-6">
-                                        <div className="w-64 h-64 mx-auto rounded-2xl overflow-hidden shadow-lg border-4 border-emerald-500 relative">
-                                            <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                                            {processing && (
-                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex justify-center gap-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => { setPreview(null); setData('image', null); }}
-                                                className="px-6 py-2 text-gray-500 hover:text-gray-700 font-medium"
-                                                disabled={processing}
-                                            >
-                                                Change Photo
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full font-bold shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-105 disabled:opacity-50"
-                                                disabled={processing}
-                                            >
-                                                {processing ? 'Analyzing...' : 'Analyze Food'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div
-                                        onDragOver={(e) => e.preventDefault()}
-                                        onDrop={handleDrop}
-                                        className="space-y-6 cursor-pointer"
-                                    >
-                                        <div className="flex justify-center mb-4">
-                                            <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-500 dark:text-emerald-400 transform group-hover:scale-110 transition-transform duration-300">
-                                                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Drag & drop your food image here</h3>
-                                            <p className="text-gray-500 dark:text-gray-400 mb-6">or use your camera to capture instantly</p>
-                                        </div>
-
-                                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                            <label className="px-8 py-3 bg-emerald-100 dark:bg-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-full font-bold cursor-pointer transition-colors">
-                                                <span>Choose File</span>
-                                                <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-                                            </label>
-                                            <span className="text-gray-400 font-medium">- OR -</span>
-                                            <button
-                                                type="button"
-                                                onClick={startCamera}
-                                                className="px-8 py-3 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 text-white rounded-full font-bold shadow-lg transition-all flex items-center gap-2"
-                                            >
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                </svg>
-                                                Open Camera
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </form>
-                        </div>
-                    ) : (
-                        /* Result Card */
-                        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden max-w-5xl mx-auto flex flex-col md:flex-row animate-fade-in-up animation-delay-200">
-                            {/* Image Side */}
-                            <div className="md:w-1/2 relative bg-gray-100 dark:bg-gray-900">
-                                <img src={result.image_url || preview} alt={result.food_name} className="w-full h-64 md:h-full object-cover md:min-h-[400px]" />
-                                <button
-                                    onClick={() => window.location.reload()} // Simple reset
-                                    className="absolute top-4 left-4 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-2 rounded-full transition-colors"
-                                >
-                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            {/* Info Side */}
-                            <div className="md:w-1/2 p-8 md:p-12 space-y-8">
-                                <div>
-                                    <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">{result.food_name}</h2>
-
-                                    {/* Confidence Bar */}
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${result.confidence}%` }}></div>
-                                        </div>
-                                        <span className="text-emerald-500 font-bold text-sm">{result.confidence}% Confident</span>
-                                    </div>
-
-                                    {/* Tags */}
-                                    <div className="flex flex-wrap gap-2">
-                                        {result.tags.map((tag, idx) => (
-                                            <span key={idx} className={`px-3 py-1 rounded-full text-xs font-bold ${['Rice', 'Vegetables'].includes(tag) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' :
-                                                tag === 'Egg' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300' :
-                                                    'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                                }`}>
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-2">Nutritional Breakdown</h3>
-
-                                    {/* Portion Control */}
-                                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl">
-                                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Portion:</span>
-                                        <select className="bg-transparent border-none text-gray-900 dark:text-white font-bold focus:ring-0 cursor-pointer">
-                                            <option className="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">{result.portion}</option>
-                                            <option className="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">1 cup (158g)</option>
-                                            <option className="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">0.5 cup (79g)</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Macros List */}
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center text-lg">
-                                            <span className="text-gray-600 dark:text-gray-400">Calories</span>
-                                            <span className="font-black text-gray-900 dark:text-white">{result.nutrition.calories} kcal</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-600 dark:text-gray-400">Protein</span>
-                                            <span className="font-bold text-gray-900 dark:text-white">{result.nutrition.protein} g</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-600 dark:text-gray-400">Carbohydrates</span>
-                                            <span className="font-bold text-gray-900 dark:text-white">{result.nutrition.carbs} g</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-600 dark:text-gray-400">Fat</span>
-                                            <span className="font-bold text-gray-900 dark:text-white">{result.nutrition.fat} g</span>
-                                        </div>
-                                        <div className="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2">
-                                            <div className="flex justify-between items-center text-sm">
-                                                <span className="text-gray-500 dark:text-gray-500">Sodium</span>
-                                                <span className="font-medium text-gray-700 dark:text-gray-300">{result.nutrition.sodium} mg</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-sm">
-                                                <span className="text-gray-500 dark:text-gray-500">Sugar</span>
-                                                <span className="font-medium text-gray-700 dark:text-gray-300">{result.nutrition.sugar} g</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col gap-3 pt-4">
-                                    <button
-                                        onClick={() => {
-                                            router.post(route('nutriscan.log'), {
-                                                food_name: result.food_name,
-                                                calories: result.nutrition.calories,
-                                                protein: result.nutrition.protein,
-                                                carbs: result.nutrition.carbs,
-                                                fat: result.nutrition.fat,
-                                                image_url: result.image_url,
-                                                portion: result.portion || '1 serving'
-                                            });
-                                        }}
-                                        disabled={processing}
-                                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-[1.02]"
-                                    >
-                                        Save to Daily Log
-                                    </button>
-
-                                    <button
-                                        onClick={() => window.location.href = route('nutriscan.index')}
-                                        className="w-full py-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-bold rounded-xl transition-colors"
-                                    >
-                                        Analyze Another Image
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${scansRemaining <= 5 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                            style={{ width: `${scanPct}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">{scansUsed} dari {maxScans} scan digunakan hari ini</p>
                 </div>
+
+                {/* Error */}
+                {error && (
+                    <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
+                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                        <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                    </div>
+                )}
+
+                {/* Camera */}
+                {isCameraOpen && (
+                    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+                        <video ref={videoRef} autoPlay playsInline className="w-full max-w-lg rounded-2xl" />
+                        <canvas ref={canvasRef} className="hidden" />
+                        <div className="flex items-center gap-4 mt-6">
+                            <button onClick={closeCamera} className="p-3 bg-white/20 text-white rounded-full"><X className="w-5 h-5" /></button>
+                            <button onClick={capture} className="w-16 h-16 bg-white rounded-full border-4 border-emerald-500 flex items-center justify-center">
+                                <div className="w-10 h-10 bg-emerald-500 rounded-full" />
+                            </button>
+                            <button onClick={() => { closeCamera(); setFacingMode(f => f === 'environment' ? 'user' : 'environment'); setTimeout(openCamera, 200); }}
+                                className="p-3 bg-white/20 text-white rounded-full"><FlipHorizontal className="w-5 h-5" /></button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Result */}
+                {analysis && !isEditing ? (
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-5 text-white">
+                            <div className="flex items-center gap-2 mb-1">
+                                <CheckCircle className="w-5 h-5" />
+                                <span className="font-bold text-lg">{analysis.food_name}</span>
+                            </div>
+                            <div className="text-emerald-100 text-sm">Kepercayaan: {Math.round((analysis.confidence ?? 0) * 100)}%</div>
+                            <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                                <div className="h-full bg-white rounded-full" style={{ width: `${Math.round((analysis.confidence ?? 0) * 100)}%` }} />
+                            </div>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            {analysis.tags?.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {analysis.tags.map((t, i) => (
+                                        <span key={i} className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium rounded-full">{t}</span>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                {[
+                                    { label: 'Kalori',  value: logForm.data.calories, unit: 'kkal', cls: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' },
+                                    { label: 'Protein', value: logForm.data.protein,  unit: 'g',    cls: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
+                                    { label: 'Karbo',   value: logForm.data.carbs,    unit: 'g',    cls: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' },
+                                    { label: 'Lemak',   value: logForm.data.fat,      unit: 'g',    cls: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300' },
+                                ].map(n => (
+                                    <div key={n.label} className={`p-3 rounded-xl ${n.cls}`}>
+                                        <div className="text-xs font-medium opacity-70">{n.label}</div>
+                                        <div className="text-xl font-extrabold">{Math.round(n.value)}<span className="text-xs font-normal ml-0.5">{n.unit}</span></div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 block">Waktu Makan</label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {MEAL_OPTIONS.map(o => (
+                                        <button key={o.value} type="button" onClick={() => logForm.setData('meal_type', o.value)}
+                                            className={`py-2 text-xs font-semibold rounded-xl border transition-all ${logForm.data.meal_type === o.value ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-emerald-300'}`}>
+                                            {o.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => { setIsEditing(true); setEditData({ food_name: logForm.data.food_name, calories: logForm.data.calories, protein: logForm.data.protein, carbs: logForm.data.carbs, fat: logForm.data.fat }); }}
+                                    className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                    <Edit2 className="w-4 h-4" /> Edit
+                                </button>
+                                <button onClick={handleLog} disabled={logForm.processing}
+                                    className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl text-sm disabled:opacity-60 hover:from-emerald-400 hover:to-emerald-500 transition-all">
+                                    {logForm.processing ? 'Menyimpan...' : 'Simpan ke Jurnal'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : analysis && isEditing ? (
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-900 dark:text-white">Edit Data Nutrisi</h3>
+                            <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+                        </div>
+                        {[
+                            { key: 'food_name', label: 'Nama Makanan', type: 'text' },
+                            { key: 'calories',  label: 'Kalori (kkal)', type: 'number' },
+                            { key: 'protein',   label: 'Protein (g)',   type: 'number' },
+                            { key: 'carbs',     label: 'Karbo (g)',     type: 'number' },
+                            { key: 'fat',       label: 'Lemak (g)',     type: 'number' },
+                        ].map(f => (
+                            <div key={f.key}>
+                                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">{f.label}</label>
+                                <input type={f.type} value={editData?.[f.key] ?? ''}
+                                    onChange={e => setEditData(d => ({ ...d, [f.key]: f.type === 'number' ? +e.target.value : e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                            </div>
+                        ))}
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsEditing(false)} className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium">Batal</button>
+                            <button onClick={handleLog} disabled={logForm.processing}
+                                className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl text-sm disabled:opacity-60">
+                                {logForm.processing ? 'Menyimpan...' : 'Simpan'}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <form onSubmit={handleAnalyze}>
+                        <div onDragOver={e => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}
+                            className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${isDragging ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
+                            {preview ? (
+                                <div className="relative inline-block">
+                                    <img src={preview} alt="Preview" className="max-h-64 rounded-xl mx-auto" />
+                                    <button type="button" onClick={() => { setPreview(null); setData('image', null); }}
+                                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-3 h-3" /></button>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mx-auto">
+                                        <Upload className="w-8 h-8 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-gray-900 dark:text-white">Upload foto makanan</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Drag & drop atau klik pilih file</p>
+                                        <p className="text-xs text-gray-400 mt-1">JPG, JPEG, PNG • Maks 5 MB</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <input ref={fileInput} type="file" accept="image/jpg,image/jpeg,image/png" className="hidden" onChange={e => handleFile(e.target.files[0])} />
+                        <div className="flex gap-3 mt-4">
+                            <button type="button" onClick={() => fileInput.current?.click()}
+                                className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                <Upload className="w-4 h-4" /> Pilih File
+                            </button>
+                            <button type="button" onClick={openCamera} disabled={scansRemaining === 0}
+                                className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
+                                <Camera className="w-4 h-4" /> Kamera
+                            </button>
+                            <button type="submit" disabled={!data.image || processing || scansRemaining === 0}
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl text-sm disabled:opacity-50 hover:from-emerald-400 transition-all">
+                                <Scan className="w-4 h-4" /> {processing ? 'Menganalisis...' : 'Analisis'}
+                            </button>
+                        </div>
+                        {scansRemaining === 0 && (
+                            <p className="text-xs text-red-500 mt-2 text-center">Kuota scan harian habis. Coba lagi besok pukul 00:00.</p>
+                        )}
+                    </form>
+                )}
             </div>
-
-            {/* Error Modal */}
-            <Modal show={showError} onClose={() => setShowError(false)} maxWidth="sm">
-                <div className="p-6 text-center">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
-                        <svg className="h-10 w-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Oops!</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mb-6">{error || 'Something went wrong.'}</p>
-                    <button
-                        onClick={() => setShowError(false)}
-                        className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            </Modal>
         </AuthenticatedLayout>
     );
 }

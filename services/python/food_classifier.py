@@ -16,7 +16,7 @@ except Exception as e:
     print(f"Error loading model: {e}")
 
 # Image Transformations
-transform = transforms.Compose([
+transform = transforms.Compose([he
     transforms.Resize(256),
     transforms.CenterCrop(224),
     transforms.ToTensor(),

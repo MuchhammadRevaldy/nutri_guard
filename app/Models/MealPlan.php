@@ -5,29 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class FoodLog extends Model
+class MealPlan extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'family_member_id',
+        'planned_date',
+        'meal_type',
         'name',
         'calories',
         'protein',
         'carbs',
         'fat',
-        'fiber',
-        'sodium',
-        'sugar',
-        'meal_type',
-        'image_path',
-        'eaten_at',
-        'tags',
+        'notes',
     ];
 
     protected $casts = [
-        'tags'     => 'array',
-        'eaten_at' => 'datetime',
+        'planned_date' => 'date',
     ];
 
     public function familyMember()

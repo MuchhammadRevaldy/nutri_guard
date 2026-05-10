@@ -22,6 +22,8 @@ class User extends Authenticatable
         'email',
         'password',
         'avatar',
+        'scan_count_today',
+        'scan_date',
     ];
 
     /**

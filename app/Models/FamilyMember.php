@@ -20,13 +20,15 @@ class FamilyMember extends Model
         'height',
         'activity_level',
         'health_goal',
-        'daily_calorie_goal'
+        'daily_calorie_goal',
+        'allergies',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
-        'weight' => 'decimal:2',
-        'height' => 'decimal:2',
+        'weight'     => 'decimal:2',
+        'height'     => 'decimal:2',
+        'allergies'  => 'array',
     ];
 
     public function user()
