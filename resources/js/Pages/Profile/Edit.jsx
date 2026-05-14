@@ -3,7 +3,9 @@ import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 import UpdatePhysicalStatsForm from './Partials/UpdatePhysicalStatsForm';
+
 import { Head } from '@inertiajs/react';
+import RevealOnScroll from '@/Components/RevealOnScroll';
 
 export default function Edit({ auth, mustVerifyEmail, status }) {
     return (
@@ -14,25 +16,31 @@ export default function Edit({ auth, mustVerifyEmail, status }) {
             <Head title="Profile" />
 
             <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                    <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                    <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl animate-fade-in-up animation-delay-100">
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
                         />
                     </div>
-        
-                    <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl">
-                        <UpdatePhysicalStatsForm />
-                    </div>
 
-                    <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl">
-                        <UpdatePasswordForm />
-                    </div>
+                    <RevealOnScroll>
+                        <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl">
+                            <UpdatePhysicalStatsForm />
+                        </div>
+                    </RevealOnScroll>
 
-                    <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl">
-                        <DeleteUserForm />
-                    </div>
+                    <RevealOnScroll>
+                        <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl">
+                            <UpdatePasswordForm />
+                        </div>
+                    </RevealOnScroll>
+
+                    <RevealOnScroll>
+                        <div className="p-6 bg-white dark:bg-gray-800 shadow-sm rounded-2xl">
+                            <DeleteUserForm />
+                        </div>
+                    </RevealOnScroll>
                 </div>
             </div>
         </AuthenticatedLayout>

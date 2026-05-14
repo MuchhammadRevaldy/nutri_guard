@@ -18,6 +18,12 @@ class FoodLog extends Model
         'fat',
         'image_path',
         'eaten_at',
+        'tags'
+    ];
+
+    protected $casts = [
+        'tags' => 'array',
+        'eaten_at' => 'datetime'
     ];
 
     public function familyMember()

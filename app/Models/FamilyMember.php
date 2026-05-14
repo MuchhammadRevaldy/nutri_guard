@@ -59,18 +59,35 @@ class FamilyMember extends Model
      */
     public function getAgeCategoryAttribute()
     {
-        if (!$this->birth_date) {
+        if ($this->birth_date) {
+            $age = $this->birth_date->age;
+        } elseif ($this->linked_user_id) {
+            // Fallback: Check if the linked user has a profile with a birth_date
+            $linkedMember = FamilyMember::where('user_id', $this->linked_user_id)
+                ->whereNotNull('birth_date')
+                ->first();
+
+            if ($linkedMember) {
+                $age = $linkedMember->birth_date->age;
+            } else {
+                return null;
+            }
+        } else {
             return null;
         }
 
-        $age = $this->birth_date->age;
+        // Specific User Request Logic:
+        // 13-19 = Teenager
+        // 20-40 = Adult
 
         if ($age < 13) {
             return 'Child';
         } elseif ($age <= 19) {
             return 'Teenager';
+        } elseif ($age <= 40) {
+            return 'Adult';
         } else {
-            return 'Mature';
+            return 'Senior'; // Fallback for > 40
         }
     }
 

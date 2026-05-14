@@ -20,9 +20,15 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
+        "@google/genai": "^1.33.0",
         "@google/generative-ai": "^0.24.1",
         "chart.js": "^4.5.1",
+        "groq-sdk": "^0.37.0",
+        "jspdf": "^3.0.4",
         "lucide-react": "^0.556.0",
-        "react-chartjs-2": "^5.3.1"
+        "markdown-to-jsx": "^9.3.5",
+        "openai": "^6.10.0",
+        "react-chartjs-2": "^5.3.1",
+        "react-markdown": "^10.1.0"
     }
 }
