@@ -66,13 +66,33 @@ class ChatController extends Controller
     {
         $request->validate([
             'recipient_id' => 'required|exists:users,id',
-            'message' => 'required|string',
+            'message'      => 'nullable|string',
+            'image'        => 'nullable|image|max:5120',
         ]);
 
+        $messageType = 'text';
+        $attachmentUrl = null;
+        $messageText = $request->message ?? '';
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('chat_images', 'public');
+            $attachmentUrl = \Illuminate\Support\Facades\Storage::url($path);
+            $messageType = 'image';
+            if (empty($messageText)) {
+                $messageText = '📸 Gambar';
+            }
+        }
+
+        if (empty($messageText) && !$request->hasFile('image')) {
+            return response()->json(['message' => 'Pesan atau gambar harus diisi'], 422);
+        }
+
         $message = Message::create([
-            'sender_id' => Auth::id(),
-            'recipient_id' => $request->recipient_id,
-            'message' => $request->message,
+            'sender_id'      => Auth::id(),
+            'recipient_id'   => $request->recipient_id,
+            'message'        => $messageText,
+            'message_type'   => $messageType,
+            'attachment_url' => $attachmentUrl,
         ]);
 
         return response()->json($message);

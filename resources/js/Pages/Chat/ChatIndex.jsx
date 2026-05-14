@@ -2,13 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import axios from 'axios';
-import { Send, MessageCircle } from 'lucide-react';
+import { Send, MessageCircle, Image as ImageIcon, X } from 'lucide-react';
 
 export default function ChatIndex({ auth, contacts }) {
     const [localContacts, setLocalContacts] = useState(contacts);
     const [selected,  setSelected]  = useState(null);
     const [messages,  setMessages]  = useState([]);
     const [input,     setInput]     = useState('');
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [imagePreview,  setImagePreview]  = useState(null);
+    const [zoomedImage,   setZoomedImage]   = useState(null);
     const [sending,   setSending]   = useState(false);
     const bottomRef  = useRef(null);
     const pollRef    = useRef(null);
@@ -45,14 +48,33 @@ export default function ChatIndex({ auth, contacts }) {
 
     async function sendMessage(e) {
         e.preventDefault();
-        if (!input.trim() || !selected || sending) return;
+        if ((!input.trim() && !selectedImage) || !selected || sending) return;
         setSending(true);
         try {
-            await axios.post(route('chat.store'), { recipient_id: selected.id, message: input.trim() });
+            const formData = new FormData();
+            formData.append('recipient_id', selected.id);
+            if (input.trim()) formData.append('message', input.trim());
+            if (selectedImage) formData.append('image', selectedImage);
+            
+            await axios.post(route('chat.store'), formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
             setInput('');
+            setSelectedImage(null);
+            setImagePreview(null);
             await loadMessages(selected.id);
         } catch {}
         setSending(false);
+    }
+
+    function handleImageChange(e) {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onload = (e) => setImagePreview(e.target.result);
+            reader.readAsDataURL(file);
+        }
     }
 
     useEffect(() => {
@@ -184,7 +206,14 @@ export default function ChatIndex({ auth, contacts }) {
                                                                 ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-br-sm'
                                                                 : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 rounded-bl-sm'
                                                         }`}>
-                                                            {msg.message}
+                                                            {msg.message_type === 'image' && msg.attachment_url ? (
+                                                                <div className="flex flex-col gap-2">
+                                                                    <img src={msg.attachment_url} alt="attachment" className="rounded-xl max-w-full max-h-64 cursor-pointer object-cover" onClick={() => setZoomedImage(msg.attachment_url)} />
+                                                                    {msg.message && msg.message !== '📸 Gambar' && <span>{msg.message}</span>}
+                                                                </div>
+                                                            ) : (
+                                                                msg.message
+                                                            )}
                                                         </div>
                                                         <span className="text-[10px] text-gray-400 mt-1 px-1">{formatTime(msg.created_at)}</span>
                                                     </div>
@@ -197,23 +226,65 @@ export default function ChatIndex({ auth, contacts }) {
                             </div>
 
                             {/* Input */}
-                            <form onSubmit={sendMessage} className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
-                                <input
-                                    type="text"
-                                    value={input}
-                                    onChange={e => setInput(e.target.value)}
-                                    placeholder={`Pesan ke ${selected.name}...`}
-                                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
-                                />
-                                <button type="submit" disabled={!input.trim() || sending}
-                                    className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-50 transition-all">
-                                    <Send className="w-4 h-4" />
-                                </button>
-                            </form>
+                            <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex-shrink-0 flex flex-col">
+                                {imagePreview && (
+                                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 relative">
+                                        <div className="relative inline-block">
+                                            <img src={imagePreview} alt="preview" className="h-24 rounded-lg object-contain bg-gray-50 dark:bg-gray-800" />
+                                            <button onClick={() => { setSelectedImage(null); setImagePreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                <form onSubmit={sendMessage} className="flex items-center gap-2 sm:gap-3 p-4">
+                                    <input type="file" accept="image/*" className="hidden" id="chat-image-upload" onChange={handleImageChange} />
+                                    
+                                    <input
+                                        type="text"
+                                        value={input}
+                                        onChange={e => setInput(e.target.value)}
+                                        placeholder={`Pesan ke ${selected.name}...`}
+                                        className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
+                                    />
+
+                                    <label htmlFor="chat-image-upload" title="Kirim gambar" className="w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer transition-colors flex-shrink-0">
+                                        <ImageIcon className="w-5 h-5" />
+                                    </label>
+
+                                    <button type="submit" disabled={(!input.trim() && !selectedImage) || sending}
+                                        className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-xl flex items-center justify-center flex-shrink-0 disabled:opacity-50 transition-all">
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                </form>
+                            </div>
                         </>
                     )}
                 </div>
             </div>
+
+            {/* Image Zoom Overlay */}
+            {zoomedImage && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-zoom-out"
+                    onClick={() => setZoomedImage(null)}
+                >
+                    <div className="relative max-w-5xl w-full h-full flex items-center justify-center">
+                        <button 
+                            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setZoomedImage(null); }}
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                        <img 
+                            src={zoomedImage} 
+                            alt="Zoomed attachment" 
+                            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+                            onClick={(e) => e.stopPropagation()} // Prevent click from closing immediately if they click the image itself
+                        />
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }
