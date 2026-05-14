@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Scan, ChefHat, AlertTriangle, X, Coffee, Sun, Sunset, Moon, Plus, TrendingUp } from 'lucide-react';
+import Modal from '@/Components/Modal';
+import { Scan, ChefHat, AlertTriangle, X, Coffee, Sun, Sunset, Moon, Plus, TrendingUp, Mail } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip } from 'chart.js';
 
@@ -39,6 +40,21 @@ function CalorieRing({ current, goal }) {
 export default function Dashboard({ auth, familyMembers, logsByMealType, dailyStats, weeklyChartData, healthWarning, success }) {
     const [dismissWarning, setDismissWarning] = useState(false);
     const [activeMeal, setActiveMeal]         = useState('breakfast');
+    const [isInviteOpen, setIsInviteOpen]     = useState(false);
+
+    const { data: inviteData, setData: setInviteData, post: postInvite, processing: inviteProcessing, errors: inviteErrors, reset: resetInvite } = useForm({
+        email: ''
+    });
+
+    const submitInvite = (e) => {
+        e.preventDefault();
+        postInvite(route('family.invite'), {
+            onSuccess: () => {
+                setIsInviteOpen(false);
+                resetInvite();
+            }
+        });
+    };
 
     const proteinGoal = Math.round((dailyStats.goal_calories * 0.25) / 4);
     const carbsGoal   = Math.round((dailyStats.goal_calories * 0.50) / 4);
@@ -200,13 +216,55 @@ export default function Dashboard({ auth, familyMembers, logsByMealType, dailySt
                                     </Link>
                                 ))}
                             </div>
-                            <Link href={route('invitations.index')} className="mt-3 w-full flex items-center justify-center gap-1 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors">
+                            <button onClick={() => setIsInviteOpen(true)} className="mt-3 w-full flex items-center justify-center gap-1 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors">
                                 <Plus className="w-3.5 h-3.5" /> Undang Anggota
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Invite Modal */}
+            <Modal show={isInviteOpen} onClose={() => { setIsInviteOpen(false); resetInvite(); }} maxWidth="md">
+                <form onSubmit={submitInvite} className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Undang Anggota Keluarga</h2>
+                        <button type="button" onClick={() => { setIsInviteOpen(false); resetInvite(); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Kirimkan undangan ke email anggota keluarga Anda untuk bergabung dan berbagi progress bersama.
+                    </p>
+                    
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Tujuan</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Mail className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <input 
+                                type="email" 
+                                value={inviteData.email}
+                                onChange={e => setInviteData('email', e.target.value)}
+                                className="pl-10 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                                placeholder="contoh@email.com"
+                                required
+                            />
+                        </div>
+                        {inviteErrors.email && <p className="text-xs text-red-500 mt-1">{inviteErrors.email}</p>}
+                    </div>
+
+                    <div className="flex gap-3 justify-end mt-6">
+                        <button type="button" onClick={() => { setIsInviteOpen(false); resetInvite(); }} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit" disabled={inviteProcessing} className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+                            {inviteProcessing ? 'Mengirim...' : 'Kirim Undangan'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

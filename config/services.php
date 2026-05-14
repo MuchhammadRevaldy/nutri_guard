@@ -35,4 +35,8 @@ return [
         'python_path' => env('NUTRISCAN_PYTHON', 'python'),
     ],
 
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+    ],
+
 ];

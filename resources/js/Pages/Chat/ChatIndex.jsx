@@ -5,12 +5,17 @@ import axios from 'axios';
 import { Send, MessageCircle } from 'lucide-react';
 
 export default function ChatIndex({ auth, contacts }) {
+    const [localContacts, setLocalContacts] = useState(contacts);
     const [selected,  setSelected]  = useState(null);
     const [messages,  setMessages]  = useState([]);
     const [input,     setInput]     = useState('');
     const [sending,   setSending]   = useState(false);
     const bottomRef  = useRef(null);
     const pollRef    = useRef(null);
+
+    useEffect(() => {
+        setLocalContacts(contacts);
+    }, [contacts]);
 
     async function loadMessages(userId) {
         try {
@@ -23,6 +28,17 @@ export default function ChatIndex({ auth, contacts }) {
     function selectUser(contact) {
         setSelected(contact);
         loadMessages(contact.id);
+        
+        // Reset unread locally instantly
+        setLocalContacts(prev => prev.map(c => 
+            c.id === contact.id ? { ...c, unread_count: 0 } : c
+        ));
+        
+        if (auth.user && contact.unread_count > 0) {
+            auth.user.unreadMessagesCount = Math.max(0, auth.user.unreadMessagesCount - contact.unread_count);
+            // This relies on inertia updating the layout
+        }
+
         clearInterval(pollRef.current);
         pollRef.current = setInterval(() => loadMessages(contact.id), 3000);
     }
@@ -84,11 +100,11 @@ export default function ChatIndex({ auth, contacts }) {
                             <div className="p-6 text-center">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Belum ada kontak. Undang anggota keluarga terlebih dahulu.</p>
                             </div>
-                        ) : contacts.map(c => (
+                        ) : localContacts.map(c => (
                             <button key={c.id} onClick={() => selectUser(c)}
                                 className={`w-full flex items-center gap-3 p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${selected?.id === c.id ? 'bg-emerald-50 dark:bg-emerald-900/20 border-r-2 border-emerald-500' : ''}`}>
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                    {c.name.charAt(0).toUpperCase()}
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden text-white font-bold text-sm flex-shrink-0 ring-1 ring-emerald-500/20">
+                                    {c.avatar_url ? <img src={c.avatar_url} alt="avatar" className="w-full h-full object-cover" /> : c.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between">
@@ -127,8 +143,8 @@ export default function ChatIndex({ auth, contacts }) {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                 </button>
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-                                    {selected.name.charAt(0).toUpperCase()}
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden text-white font-bold text-sm">
+                                    {selected.avatar_url ? <img src={selected.avatar_url} alt="avatar" className="w-full h-full object-cover" /> : selected.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
                                     <div className="font-semibold text-sm text-gray-900 dark:text-white">{selected.name}</div>
@@ -158,8 +174,8 @@ export default function ChatIndex({ auth, contacts }) {
                                             return (
                                                 <div key={msg.id} className={`flex mb-2 ${isSelf ? 'justify-end' : 'justify-start'}`}>
                                                     {!isSelf && (
-                                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 self-end">
-                                                            {selected.name.charAt(0)}
+                                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden text-white text-xs font-bold mr-2 flex-shrink-0 self-end">
+                                                            {selected.avatar_url ? <img src={selected.avatar_url} alt="avatar" className="w-full h-full object-cover" /> : selected.name.charAt(0).toUpperCase()}
                                                         </div>
                                                     )}
                                                     <div className={`max-w-xs lg:max-w-md ${isSelf ? 'items-end' : 'items-start'} flex flex-col`}>

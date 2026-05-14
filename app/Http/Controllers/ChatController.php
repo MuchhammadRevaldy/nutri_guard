@@ -39,7 +39,7 @@ class ChatController extends Controller
                 ->where('is_read', false)
                 ->count();
 
-            $contact->last_message = $lastMessage;
+            $contact->last_message = $lastMessage ? $lastMessage->message : null;
             return $contact;
         });
 

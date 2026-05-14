@@ -214,9 +214,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/fitchef', [\App\Http\Controllers\FitChefController::class, 'index'])->name('fitchef.index');
     Route::post('/fitchef/generate', [\App\Http\Controllers\FitChefController::class, 'generate'])->name('fitchef.generate');
 
+    // NutriBot AI Chatbot
+    Route::post('/nutribot/chat', [\App\Http\Controllers\NutriBotController::class, 'chat'])->name('nutribot.chat');
+    Route::post('/nutribot/recipe', [\App\Http\Controllers\NutriBotController::class, 'recipe'])->name('nutribot.recipe');
+
     // Meal Planner
     Route::get('/meal-planner', [MealPlanController::class, 'index'])->name('meal-planner');
     Route::post('/meal-planner', [MealPlanController::class, 'store'])->name('meal-planner.store');
+    Route::post('/meal-planner/generate', [MealPlanController::class, 'generate'])->name('meal-planner.generate');
     Route::delete('/meal-planner/{id}', [MealPlanController::class, 'destroy'])->name('meal-planner.destroy');
 
     // Gemini Thinking Demo

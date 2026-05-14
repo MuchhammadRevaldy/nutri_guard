@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { Home, Scan, ChefHat, CalendarDays, BarChart3, MessageCircle, Settings, LogOut } from 'lucide-react';
 import ThemeToggle from '@/Components/ThemeToggle';
 import Modal from '@/Components/Modal';
+import NutriBot from '@/Components/NutriBot';
 import logo from '@/images/logo-nutri-copy.png';
 
 const navItems = [
@@ -18,6 +19,14 @@ const navItems = [
 export default function Authenticated({ user, header, children, headerActions }) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Polling untuk real-time notification (badge unread)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['auth'], preserveState: true, preserveScroll: true });
+        }, 15000); // Poll setiap 15 detik
+        return () => clearInterval(interval);
+    }, []);
 
     function isActive(item) {
         try { return route().current(item.href); } catch { return false; }
@@ -170,6 +179,9 @@ export default function Authenticated({ user, header, children, headerActions })
                     </div>
                 </div>
             </Modal>
+
+            {/* NutriBot floating chatbot */}
+            {!route().current('chat.index') && <NutriBot />}
         </div>
     );
 }
