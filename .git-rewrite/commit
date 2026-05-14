@@ -1,6 +1,6 @@
-tree 8ce40ccb1d87e69dd34e5f61341a118370d104f6
-parent 66db0e720c1283935edcc3e3a7634ff20b9720f2
-author MuchhammadRevaldy <warunggazza@gmail.com> 1765652950 +0700
-committer MuchhammadRevaldy <warunggazza@gmail.com> 1765652950 +0700
+tree 36345b95b845ee67d6c8739a593e99a82d2b60a6
+parent 22f9069ba7320e42421a832358be5c75a64b1fc4
+author MuchhammadRevaldy <warunggazza@gmail.com> 1775884255 +0700
+committer MuchhammadRevaldy <warunggazza@gmail.com> 1775884255 +0700
 
-fix time zone
+docs: update project README with installation guide and refine database schema documentation
