@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import axios from 'axios';
 import { Upload, Link, Trash2, CheckCircle, AlertCircle, ImageIcon, Loader2 } from 'lucide-react';
+import Modal from '@/Components/Modal';
 
 const PROVIDERS = [
     { value: '',           label: 'Custom / Lainnya' },
@@ -24,6 +25,7 @@ export default function UpdateProfilePhotoForm({ className = '' }) {
     const [loading, setLoading]       = useState(false);
     const [toast, setToast]           = useState(null);      // {type: 'success'|'error', msg}
     const [isDragging, setDragging]   = useState(false);
+    const [confirmRemove, setConfirmRemove] = useState(false);
     const fileInput = useRef(null);
 
     // ── helpers ─────────────────────────────────────────────────────────────
@@ -99,8 +101,12 @@ export default function UpdateProfilePhotoForm({ className = '' }) {
         }
     };
 
+    const requestRemovePhoto = () => {
+        setConfirmRemove(true);
+    };
+
     const removePhoto = async () => {
-        if (!confirm('Hapus foto profil?')) return;
+        setConfirmRemove(false);
         setLoading(true);
         try {
             const res = await axios.delete('/profile/avatar');
@@ -143,7 +149,7 @@ export default function UpdateProfilePhotoForm({ className = '' }) {
                     </div>
                     {currentAvatar && (
                         <button
-                            onClick={removePhoto}
+                            onClick={requestRemovePhoto}
                             disabled={loading}
                             title="Hapus foto"
                             className="absolute -bottom-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow transition-colors disabled:opacity-50"
@@ -313,6 +319,31 @@ export default function UpdateProfilePhotoForm({ className = '' }) {
                     </div>
                 )}
             </div>
+
+            {/* Confirm Delete Photo Modal */}
+            <Modal show={confirmRemove} onClose={() => setConfirmRemove(false)} maxWidth="sm">
+                <div className="p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                        <Trash2 className="w-7 h-7 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Hapus Foto Profil?</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Tindakan ini tidak dapat dibatalkan. Foto profil Anda akan kembali menjadi inisial nama.</p>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setConfirmRemove(false)}
+                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            onClick={removePhoto}
+                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg shadow-red-500/30"
+                        >
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </section>
     );
 }

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import Modal from '@/Components/Modal';
 import {
     CalendarDays, Plus, Trash2, X, Coffee, Sun, Sunset, Moon,
     ChevronLeft, ChevronRight, Sparkles, RefreshCw, PlusCircle,
@@ -481,6 +482,7 @@ export default function MealPlanner({ auth, days, weekStart, weekEnd, calorieGoa
     const [showDay, setShowDay]     = useState(null);
     const [showAI, setShowAI]       = useState(false);
     const [selectedMeal, setMeal]   = useState(null);  // meal object for detail
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null); // ID for delete confirmation
 
     function navigate(dir) {
         const d = new Date(weekStart);
@@ -488,9 +490,16 @@ export default function MealPlanner({ auth, days, weekStart, weekEnd, calorieGoa
         router.get(route('meal-planner'), { week_start: d.toISOString().slice(0, 10) }, { preserveState: true });
     }
 
-    function deletePlan(id) {
-        if (!confirm('Hapus rencana ini?')) return;
-        router.delete(route('meal-planner.destroy', id), { preserveState: true });
+    function requestDeletePlan(id) {
+        setConfirmDeleteId(id);
+    }
+
+    function executeDelete() {
+        if (!confirmDeleteId) return;
+        router.delete(route('meal-planner.destroy', confirmDeleteId), { 
+            preserveState: true,
+            onSuccess: () => setConfirmDeleteId(null)
+        });
     }
 
     const totalCalsPerDay = (day) => day.meals.reduce((s, m) => s + (m.calories || 0), 0);
@@ -515,7 +524,7 @@ export default function MealPlanner({ auth, days, weekStart, weekEnd, calorieGoa
                 <MealDetailModal
                     meal={selectedMeal}
                     onClose={() => setMeal(null)}
-                    onDelete={(id) => { deletePlan(id); setMeal(null); }}
+                    onDelete={(id) => { requestDeletePlan(id); setMeal(null); }}
                 />
             )}
 
@@ -681,6 +690,31 @@ export default function MealPlanner({ auth, days, weekStart, weekEnd, calorieGoa
                     })()}
                 </div>
             </div>
+
+            {/* Confirm Delete Modal */}
+            <Modal show={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} maxWidth="sm">
+                <div className="p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                        <Trash2 className="w-7 h-7 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Hapus Rencana Ini?</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Tindakan ini tidak dapat dibatalkan. Menu ini akan dihapus dari jadwal meal plan Anda.</p>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            onClick={executeDelete}
+                            className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg shadow-red-500/30"
+                        >
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

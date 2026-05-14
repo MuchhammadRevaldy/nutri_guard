@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Scan, Upload, Camera, X, AlertTriangle, CheckCircle, Edit2, FlipHorizontal } from 'lucide-react';
+import Modal from '@/Components/Modal';
 
 const MEAL_OPTIONS = [
     { value: 'breakfast', label: 'Sarapan' },
@@ -17,6 +18,7 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
     const [isDragging,   setIsDragging]   = useState(false);
     const [isEditing,    setIsEditing]    = useState(false);
     const [editData,     setEditData]     = useState(null);
+    const [alertMsg,     setAlertMsg]     = useState(null);
     const videoRef  = useRef(null);
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
@@ -81,7 +83,7 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
     }
     function handleFile(file) {
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) { alert('Ukuran file maksimal 5 MB'); return; }
+        if (file.size > 5 * 1024 * 1024) { setAlertMsg('Ukuran file maksimal 5 MB'); return; }
         setData('image', file);
         const reader = new FileReader();
         reader.onload = e => setPreview(e.target.result);
@@ -273,6 +275,23 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
                     </form>
                 )}
             </div>
+
+            {/* Alert Modal */}
+            <Modal show={!!alertMsg} onClose={() => setAlertMsg(null)} maxWidth="sm">
+                <div className="p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Peringatan</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">{alertMsg}</p>
+                    <button
+                        onClick={() => setAlertMsg(null)}
+                        className="w-full py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        Tutup
+                    </button>
+                </div>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

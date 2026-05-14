@@ -26,6 +26,15 @@ ChartJS.register(
 
 export default function MemberProfile({ auth, member, alerts, weeklyLogs, growthHistory }) {
 
+    const latestGrowth = growthHistory?.[0] || {};
+    const previousGrowth = growthHistory?.[1] || {};
+    
+    const latestHeight = latestGrowth.height || '-';
+    const latestWeight = latestGrowth.weight || '-';
+    
+    const heightDiff = previousGrowth.height ? (latestGrowth.height - previousGrowth.height).toFixed(1) : 0;
+    const weightDiff = previousGrowth.weight ? (latestGrowth.weight - previousGrowth.weight).toFixed(1) : 0;
+
     // Chart Data Processing
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -106,8 +115,12 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                     {/* 1. Header Card */}
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-4">
-                            <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center text-3xl border-4 border-white dark:border-gray-800 ring-1 ring-gray-200 dark:ring-gray-700">
-                                👨🏾
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-3xl border-4 border-white dark:border-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden text-white font-bold">
+                                {member.display_avatar ? (
+                                    <img src={member.display_avatar} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    member.name.substring(0, 2).toUpperCase()
+                                )}
                             </div>
                             <div>
                                 <h1 className="text-3xl font-bold">{member.name}</h1>
@@ -133,18 +146,18 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                         <div className="flex gap-6">
                             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl min-w-[120px]">
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Height</div>
-                                <div className="text-2xl font-bold">{member.height} <span className="text-sm font-normal text-gray-500">cm</span></div>
-                                <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center">
-                                    <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                                    0.5cm <span className="text-gray-500 ml-1">last mo.</span>
+                                <div className="text-2xl font-bold">{latestHeight} <span className="text-sm font-normal text-gray-500">cm</span></div>
+                                <div className={`text-xs mt-1 flex items-center ${heightDiff > 0 ? 'text-emerald-600 dark:text-emerald-400' : heightDiff < 0 ? 'text-orange-500 dark:text-orange-400' : 'text-gray-500'}`}>
+                                    {heightDiff > 0 ? <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg> : heightDiff < 0 ? <svg className="w-3 h-3 mr-1 transform rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg> : <span className="mr-1">—</span>}
+                                    {heightDiff != 0 ? Math.abs(heightDiff) + 'cm' : 'Stable'} <span className="text-gray-500 ml-1">last mo.</span>
                                 </div>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl min-w-[120px]">
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Weight</div>
-                                <div className="text-2xl font-bold">{member.weight} <span className="text-sm font-normal text-gray-500">kg</span></div>
-                                <div className="text-xs text-orange-500 dark:text-orange-400 mt-1 flex items-center">
-                                    <span className="mr-1">—</span>
-                                    Stable <span className="text-gray-500 ml-1">last mo.</span>
+                                <div className="text-2xl font-bold">{latestWeight} <span className="text-sm font-normal text-gray-500">kg</span></div>
+                                <div className={`text-xs mt-1 flex items-center ${weightDiff < 0 ? 'text-emerald-600 dark:text-emerald-400' : weightDiff > 0 ? 'text-orange-500 dark:text-orange-400' : 'text-gray-500'}`}>
+                                    {weightDiff > 0 ? <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg> : weightDiff < 0 ? <svg className="w-3 h-3 mr-1 transform rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg> : <span className="mr-1">—</span>}
+                                    {weightDiff != 0 ? Math.abs(weightDiff) + 'kg' : 'Stable'} <span className="text-gray-500 ml-1">last mo.</span>
                                 </div>
                             </div>
                         </div>

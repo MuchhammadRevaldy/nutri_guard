@@ -206,8 +206,8 @@ export default function Dashboard({ auth, familyMembers, logsByMealType, dailySt
                                 {(familyMembers ?? []).slice(0, 4).map(m => (
                                     <Link key={m.id} href={route('family.show', m.id)}
                                         className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                            {m.name.charAt(0)}
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden text-white text-xs font-bold flex-shrink-0 ring-1 ring-emerald-500/20">
+                                            {m.display_avatar ? <img src={m.display_avatar} alt="avatar" className="w-full h-full object-cover" /> : m.name.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{m.name}</div>

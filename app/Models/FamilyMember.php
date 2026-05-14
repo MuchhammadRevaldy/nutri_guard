@@ -56,7 +56,14 @@ class FamilyMember extends Model
         return $this->hasMany(GrowthLog::class);
     }
 
-    protected $appends = ['age_category'];
+    protected $appends = ['age_category', 'display_avatar'];
+
+    public function getDisplayAvatarAttribute()
+    {
+        if ($this->avatar_url) return $this->avatar_url;
+        if ($this->linkedUser && $this->linkedUser->avatar_url) return $this->linkedUser->avatar_url;
+        return null;
+    }
 
     /**
      * Get the age category based on birth date.

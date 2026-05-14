@@ -4,9 +4,12 @@ import { useForm } from '@inertiajs/react';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import Modal from '@/Components/Modal';
+import { Trash2 } from 'lucide-react';
 
 export default function ManageMembersModal({ show, onClose, members }) {
     const [editingId, setEditingId] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const { data, setData, patch, delete: destroy, processing, reset } = useForm({
         name: '',
         weight: '',
@@ -36,13 +39,20 @@ export default function ManageMembersModal({ show, onClose, members }) {
         });
     };
 
-    const deleteMember = (id) => {
-        if (confirm('Are you sure you want to remove this member?')) {
-            destroy(route('family.destroy', id));
+    const requestDelete = (id) => {
+        setConfirmDeleteId(id);
+    };
+
+    const confirmDelete = () => {
+        if (confirmDeleteId) {
+            destroy(route('family.destroy', confirmDeleteId), {
+                onSuccess: () => setConfirmDeleteId(null)
+            });
         }
     };
 
     return (
+        <>
         <Transition.Root show={show} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={onClose}>
                 <Transition.Child
@@ -173,8 +183,8 @@ export default function ManageMembersModal({ show, onClose, members }) {
                                                 ) : (
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-xs font-bold text-emerald-600 dark:text-emerald-300">
-                                                                {member.name.substring(0, 2).toUpperCase()}
+                                                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center overflow-hidden text-xs font-bold text-emerald-600 dark:text-emerald-300">
+                                                                {member.display_avatar ? <img src={member.display_avatar} alt="avatar" className="w-full h-full object-cover" /> : member.name.substring(0, 2).toUpperCase()}
                                                             </div>
                                                             <div>
                                                                 <div className="text-gray-900 dark:text-gray-100 text-sm font-medium">{member.name}</div>
@@ -190,7 +200,7 @@ export default function ManageMembersModal({ show, onClose, members }) {
                                                             </button>
                                                             {member.name !== 'You' && (
                                                                 <button
-                                                                    onClick={() => deleteMember(member.id)}
+                                                                    onClick={() => requestDelete(member.id)}
                                                                     className="text-red-500 hover:text-red-700 text-xs font-medium"
                                                                 >
                                                                     Remove
@@ -213,5 +223,31 @@ export default function ManageMembersModal({ show, onClose, members }) {
                 </div>
             </Dialog>
         </Transition.Root>
+        
+        {/* Confirm Delete Member Modal */}
+        <Modal show={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} maxWidth="sm">
+            <div className="p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                    <Trash2 className="w-7 h-7 text-red-600 dark:text-red-400" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Hapus Anggota?</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Tindakan ini tidak dapat dibatalkan. Anggota ini akan dihapus dari keluarga Anda.</p>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        Batal
+                    </button>
+                    <button
+                        onClick={confirmDelete}
+                        className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg shadow-red-500/30"
+                    >
+                        Hapus
+                    </button>
+                </div>
+            </div>
+        </Modal>
+        </>
     );
 }
