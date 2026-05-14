@@ -218,10 +218,10 @@ export default function Welcome({ auth }) {
                 </nav>
 
                 {/* HERO SECTION */}
-                <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-emerald-950 via-slate-900 to-gray-950">
-                    <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute bottom-10 right-10 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-800/10 rounded-full blur-3xl pointer-events-none" />
+                <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-gray-50 dark:from-emerald-950 dark:via-slate-900 dark:to-gray-950 transition-colors duration-300">
+                    <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-10 right-10 w-80 h-80 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-800/5 dark:bg-emerald-800/10 rounded-full blur-3xl pointer-events-none" />
 
                     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -234,17 +234,17 @@ export default function Welcome({ auth }) {
                                 </RevealOnScroll>
 
                                 <RevealOnScroll delay={100}>
-                                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight">
+                                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight transition-colors">
                                         Pantau Gizi <br className="hidden lg:block" />
                                         untuk{' '}
-                                        <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                                        <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 dark:from-emerald-400 dark:to-cyan-400 bg-clip-text text-transparent">
                                             Keluarga Sehat
                                         </span>
                                     </h1>
                                 </RevealOnScroll>
 
                                 <RevealOnScroll delay={200}>
-                                    <p className="mt-6 text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                                    <p className="mt-6 text-lg text-gray-600 dark:text-gray-300 max-w-xl mx-auto lg:mx-0 leading-relaxed transition-colors">
                                         Scan makanan, buat resep sehat, dan pantau gizi seluruh anggota keluarga secara real-time dalam satu platform yang mudah digunakan.
                                     </p>
                                 </RevealOnScroll>
@@ -258,7 +258,7 @@ export default function Welcome({ auth }) {
                                         </Link>
                                         <a
                                             href="#how-it-works"
-                                            className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-sm text-white border border-white/20 hover:bg-white/10 transition-all duration-300 text-center"
+                                            className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-sm text-emerald-700 dark:text-white border border-emerald-200 dark:border-white/20 hover:bg-emerald-50 dark:hover:bg-white/10 transition-all duration-300 text-center"
                                         >
                                             Cara Kerja →
                                         </a>
@@ -269,13 +269,13 @@ export default function Welcome({ auth }) {
                                     <div className="mt-10 flex items-center gap-4 justify-center lg:justify-start">
                                         <div className="flex -space-x-2">
                                             {['BS', 'SR', 'AP'].map((init, i) => (
-                                                <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 border-2 border-emerald-950 flex items-center justify-center text-white text-xs font-bold">
+                                                <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 border-2 border-white dark:border-emerald-950 flex items-center justify-center text-white text-xs font-bold">
                                                     {init}
                                                 </div>
                                             ))}
                                         </div>
-                                        <p className="text-sm text-gray-400">
-                                            <span className="text-white font-semibold">500+</span> keluarga sudah bergabung
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            <span className="text-gray-900 dark:text-white font-semibold">500+</span> keluarga sudah bergabung
                                         </p>
                                     </div>
                                 </RevealOnScroll>
@@ -549,13 +549,13 @@ export default function Welcome({ auth }) {
                 </section>
 
                 {/* FOOTER */}
-                <footer className="bg-gray-950 border-t border-gray-800">
+                <footer className="bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 transition-colors duration-300">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
                             <div className="text-center md:text-left">
                                 <div className="flex items-center justify-center md:justify-start gap-3">
                                     <img src={logo} className="w-9 h-9 rounded-lg" alt="NutriGuard Logo" />
-                                    <span className="font-bold text-lg text-white tracking-tight">NutriGuard</span>
+                                    <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">NutriGuard</span>
                                 </div>
                                 <p className="mt-4 text-sm text-gray-500 max-w-xs">
                                     Platform pemantauan gizi keluarga untuk hidup yang lebih sehat setiap harinya.
@@ -563,8 +563,8 @@ export default function Welcome({ auth }) {
                             </div>
 
                             <div>
-                                <div className="text-sm font-semibold text-gray-300 mb-4">Jelajahi</div>
-                                <ul className="space-y-2 text-sm text-gray-500">
+                                <div className="text-sm font-semibold text-gray-900 dark:text-gray-300 mb-4">Jelajahi</div>
+                                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-500">
                                     <li><a href="#features" className="hover:text-emerald-400 transition-colors">Fitur</a></li>
                                     <li><a href="#how-it-works" className="hover:text-emerald-400 transition-colors">Cara Kerja</a></li>
                                     <li><a href="#about" className="hover:text-emerald-400 transition-colors">Tentang</a></li>
@@ -572,8 +572,8 @@ export default function Welcome({ auth }) {
                             </div>
 
                             <div>
-                                <div className="text-sm font-semibold text-gray-300 mb-4">Produk</div>
-                                <ul className="space-y-2 text-sm text-gray-500">
+                                <div className="text-sm font-semibold text-gray-900 dark:text-gray-300 mb-4">Produk</div>
+                                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-500">
                                     <li>NutriScan</li>
                                     <li>FitChef</li>
                                     <li>Family Dashboard</li>
@@ -581,8 +581,8 @@ export default function Welcome({ auth }) {
                             </div>
 
                             <div>
-                                <div className="text-sm font-semibold text-gray-300 mb-4">Akun</div>
-                                <ul className="space-y-2 text-sm text-gray-500">
+                                <div className="text-sm font-semibold text-gray-900 dark:text-gray-300 mb-4">Akun</div>
+                                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-500">
                                     {auth.user ? (
                                         <li>
                                             <Link href={route('dashboard')} className="hover:text-emerald-400 transition-colors">Dashboard</Link>
@@ -597,9 +597,9 @@ export default function Welcome({ auth }) {
                             </div>
                         </div>
 
-                        <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <p className="text-xs text-gray-600">&copy; 2025 NutriGuard. All rights reserved.</p>
-                            <p className="text-xs text-gray-600">
+                        <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <p className="text-xs text-gray-500 dark:text-gray-600">&copy; 2025 NutriGuard. All rights reserved.</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-600">
                                 Made with <span className="text-emerald-500">♥</span> for Indonesian families
                             </p>
                         </div>

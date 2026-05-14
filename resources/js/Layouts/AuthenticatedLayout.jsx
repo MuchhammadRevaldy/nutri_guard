@@ -44,13 +44,13 @@ export default function Authenticated({ user, header, children, headerActions })
             )}
 
             {/* SIDEBAR */}
-            <aside className={`fixed inset-y-0 left-0 z-30 w-64 flex flex-col bg-gray-900 transform transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside className={`fixed inset-y-0 left-0 z-30 w-64 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transform transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
                 {/* Logo */}
-                <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100 dark:border-white/10 flex-shrink-0">
                     <img src={logo} alt="NutriGuard" className="w-8 h-8 rounded-lg" />
-                    <span className="font-bold text-lg text-white tracking-tight">NutriGuard</span>
-                    <button onClick={() => setIsMobileMenuOpen(false)} className="ml-auto p-1 text-gray-400 hover:text-white md:hidden">
+                    <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">NutriGuard</span>
+                    <button onClick={() => setIsMobileMenuOpen(false)} className="ml-auto p-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white md:hidden">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -58,7 +58,7 @@ export default function Authenticated({ user, header, children, headerActions })
                 </div>
 
                 {/* User profile */}
-                <Link href={route('profile.edit')} className="flex items-center gap-3 px-5 py-4 border-b border-white/10 hover:bg-white/5 transition-colors flex-shrink-0">
+                <Link href={route('profile.edit')} className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors flex-shrink-0">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-emerald-500/30">
                         {user.avatar_url ? (
                             <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
@@ -67,8 +67,8 @@ export default function Authenticated({ user, header, children, headerActions })
                         )}
                     </div>
                     <div className="min-w-0">
-                        <div className="text-sm font-semibold text-white truncate">{user.name.split(' ')[0]}</div>
-                        <div className="text-xs text-gray-400 truncate">{user.email}</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name.split(' ')[0]}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
                     </div>
                 </Link>
 
@@ -84,7 +84,7 @@ export default function Authenticated({ user, header, children, headerActions })
                                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                                     active
                                         ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/20'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/8'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-white/8'
                                 }`}
                             >
                                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -100,10 +100,10 @@ export default function Authenticated({ user, header, children, headerActions })
                 </nav>
 
                 {/* Logout */}
-                <div className="px-3 py-4 border-t border-white/10 flex-shrink-0">
+                <div className="px-3 py-4 border-t border-gray-100 dark:border-white/10 flex-shrink-0">
                     <button
                         onClick={() => setShowLogoutConfirm(true)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200"
                     >
                         <LogOut className="w-5 h-5" />
                         <span>Keluar</span>
