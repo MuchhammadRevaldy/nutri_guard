@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Scan, Upload, Camera, X, AlertTriangle, CheckCircle, Edit2, FlipHorizontal } from 'lucide-react';
@@ -24,18 +24,38 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
 
     const { data, setData, post, processing } = useForm({ image: null });
     const logForm = useForm({
-        food_name: analysis?.food_name ?? '',
-        calories:  analysis?.nutrition?.calories ?? 0,
-        protein:   analysis?.nutrition?.protein  ?? 0,
-        carbs:     analysis?.nutrition?.carbs    ?? 0,
-        fat:       analysis?.nutrition?.fat      ?? 0,
-        fiber:     analysis?.nutrition?.fiber    ?? 0,
-        sodium:    analysis?.nutrition?.sodium   ?? 0,
-        sugar:     analysis?.nutrition?.sugar    ?? 0,
-        image_url: analysis?.image_url ?? '',
+        food_name: '',
+        calories:  0,
+        protein:   0,
+        carbs:     0,
+        fat:       0,
+        fiber:     0,
+        sodium:    0,
+        sugar:     0,
+        image_url: '',
         portion:   '1 porsi',
         meal_type: 'lunch',
     });
+
+    // Sync data analisis ke form setiap kali analysis berubah.
+    // useForm Inertia tidak re-inisialisasi saat props berubah (komponen tidak remount
+    // karena redirect kembali ke halaman yang sama).
+    useEffect(() => {
+        if (!analysis) return;
+        logForm.setData({
+            food_name: analysis.food_name              ?? '',
+            calories:  analysis.nutrition?.calories    ?? 0,
+            protein:   analysis.nutrition?.protein     ?? 0,
+            carbs:     analysis.nutrition?.carbs       ?? 0,
+            fat:       analysis.nutrition?.fat         ?? 0,
+            fiber:     analysis.nutrition?.fiber       ?? 0,
+            sodium:    analysis.nutrition?.sodium      ?? 0,
+            sugar:     analysis.nutrition?.sugar       ?? 0,
+            image_url: analysis.image_url              ?? '',
+            portion:   '1 porsi',
+            meal_type: 'lunch',
+        });
+    }, [analysis]);
 
     function openCamera() {
         setIsCameraOpen(true);
@@ -132,9 +152,9 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
                                 <CheckCircle className="w-5 h-5" />
                                 <span className="font-bold text-lg">{analysis.food_name}</span>
                             </div>
-                            <div className="text-emerald-100 text-sm">Kepercayaan: {Math.round((analysis.confidence ?? 0) * 100)}%</div>
+                            <div className="text-emerald-100 text-sm">Kepercayaan: {Math.round(analysis.confidence ?? 0)}%</div>
                             <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                                <div className="h-full bg-white rounded-full" style={{ width: `${Math.round((analysis.confidence ?? 0) * 100)}%` }} />
+                                <div className="h-full bg-white rounded-full" style={{ width: `${Math.min(100, Math.round(analysis.confidence ?? 0))}%` }} />
                             </div>
                         </div>
                         <div className="p-5 space-y-4">

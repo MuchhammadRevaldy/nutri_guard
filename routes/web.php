@@ -33,18 +33,21 @@ Route::get('/dashboard', function () {
     $familyMembers = $user->familyMembers;
 
     // 2. Focused Member (Default to "You" or first)
-    $myself = $familyMembers->where('name', 'You')->first();
+    $myself = $familyMembers->where('linked_user_id', $user->id)->first()
+        ?? $familyMembers->where('name', 'You')->first();
 
-    // Redirect to setup if "You" profile is incomplete
-    if (!$myself || !$myself->weight || !$myself->height) {
+    // Redirect to setup jika profil belum lengkap
+    // weight & height sekarang ada di growth_logs, bukan family_members
+    $hasGrowthData = $myself
+        ? \App\Models\GrowthLog::where('family_member_id', $myself->id)->exists()
+        : false;
+
+    if (!$myself || !$myself->birth_date || !$myself->gender || !$hasGrowthData) {
         return redirect()->route('profile.setup');
     }
 
-    // 2. Focused Member (Default to "You" or first)
-    // Priority: 1. linked_user_id = auth->id, 2. name = 'You', 3. First record
-    $myself = $familyMembers->where('linked_user_id', $user->id)->first()
-        ?? $familyMembers->where('name', 'You')->first()
-        ?? $familyMembers->first();
+    // Fallback ke first() jika belum ditemukan di atas
+    $myself = $myself ?? $familyMembers->first();
 
     // 3. Today's Logs
     $todaysLogs = \App\Models\FoodLog::where('family_member_id', $myself?->id)
@@ -191,6 +194,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Avatar API — POST untuk upload file/URL, DELETE untuk hapus
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar'])->name('profile.avatar.remove');
+
     Route::post('/family/invite', [\App\Http\Controllers\FamilyController::class, 'invite'])->name('family.invite');
     Route::get('/family/accept/{token}', [\App\Http\Controllers\FamilyController::class, 'accept'])->name('family.accept');
     Route::get('/invitations', [\App\Http\Controllers\FamilyController::class, 'invitations'])->name('invitations.index');
@@ -227,28 +234,40 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/setup-profile', function (\Illuminate\Http\Request $request) {
         $request->validate([
-            'gender' => 'required|in:male,female',
-            'birth_date' => 'required|date',
-            'weight' => 'required|numeric|min:1',
-            'height' => 'required|numeric|min:1',
+            'gender'         => 'required|in:male,female',
+            'birth_date'     => 'required|date',
+            'weight'         => 'required|numeric|min:1',
+            'height'         => 'required|numeric|min:1',
             'activity_level' => 'required|in:sedentary,light,moderate,active,very_active',
-            'health_goal' => 'required|in:loss,maintenance,gain,growth',
+            'health_goal'    => 'required|in:loss,maintenance,gain,growth',
         ]);
 
         $user = auth()->user();
-        // Find or create the "You" member
-        $member = $user->familyMembers()->where('name', 'You')->first();
+
+        $member = $user->familyMembers()->where('linked_user_id', $user->id)->first()
+            ?? $user->familyMembers()->where('name', 'You')->first();
 
         if (!$member) {
             $member = $user->familyMembers()->create([
-                'name' => 'You',
-                'role' => 'parent', // default
+                'name'           => 'You',
+                'role'           => 'parent',
                 'linked_user_id' => $user->id,
-                'daily_calorie_goal' => 2000 // temp
             ]);
         }
 
-        $member->fill($request->all());
+        // Simpan data profil ke family_members
+        $member->fill($request->only(['gender', 'birth_date', 'activity_level', 'health_goal']));
+        $member->save();
+
+        // Simpan weight & height ke growth_logs (bukan lagi di family_members)
+        \App\Models\GrowthLog::create([
+            'family_member_id' => $member->id,
+            'weight'           => $request->weight,
+            'height'           => $request->height,
+            'recorded_at'      => now(),
+        ]);
+
+        // Hitung kalori harian berdasarkan data yang baru disimpan
         $member->recalculateCalories();
 
         return redirect()->route('dashboard');

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Line, Bar } from 'react-chartjs-2';
@@ -5,13 +6,24 @@ import {
     Chart as ChartJS, CategoryScale, LinearScale, PointElement,
     LineElement, BarElement, Filler, Tooltip, Legend
 } from 'chart.js';
-import { TrendingUp, Target, Award, Download } from 'lucide-react';
+import { TrendingUp, Target, Award, Download, ChevronDown, ChevronUp, Utensils } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend);
 
+const MEAL_LABELS = { breakfast: 'Sarapan', lunch: 'Makan Siang', dinner: 'Makan Malam', snack: 'Camilan' };
+const MEAL_COLORS = {
+    breakfast: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+    lunch:     'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+    dinner:    'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400',
+    snack:     'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400',
+};
+
 export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, insights, topFoods }) {
+    const [openRow, setOpenRow] = useState(null);
+    const toggleRow = (i) => setOpenRow(prev => prev === i ? null : i);
+
     const labels      = dailyBreakdown.map(d => d.date);
     const calData     = dailyBreakdown.map(d => d.total_calories);
     const targetData  = dailyBreakdown.map(d => d.target_calories);
@@ -140,11 +152,13 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                     <div className="p-5 border-b border-gray-100 dark:border-gray-800">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Detail Per Hari</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Klik baris untuk melihat detail makanan</p>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-100 dark:border-gray-800">
+                                    <th className="w-8 px-4 py-3" />
                                     {['Tanggal', 'Kalori', 'Target', 'Protein', 'Karbo', 'Lemak', 'Status'].map(h => (
                                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400">{h}</th>
                                     ))}
@@ -152,19 +166,98 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                             </thead>
                             <tbody>
                                 {dailyBreakdown.map((d, i) => {
-                                    const pct    = d.target_calories > 0 ? (d.total_calories / d.target_calories) * 100 : 0;
-                                    const status = d.total_calories === 0 ? 'Tidak ada data' : pct > 115 ? 'Melebihi' : pct >= 80 ? 'Tercapai' : 'Kurang';
-                                    const scls   = status === 'Tercapai' ? 'text-emerald-600 dark:text-emerald-400' : status === 'Melebihi' ? 'text-red-500' : status === 'Kurang' ? 'text-amber-500' : 'text-gray-400';
+                                    const pct      = d.target_calories > 0 ? (d.total_calories / d.target_calories) * 100 : 0;
+                                    const status   = d.total_calories === 0 ? 'Tidak ada data' : pct > 115 ? 'Melebihi' : pct >= 80 ? 'Tercapai' : 'Kurang';
+                                    const scls     = status === 'Tercapai' ? 'text-emerald-600 dark:text-emerald-400' : status === 'Melebihi' ? 'text-red-500' : status === 'Kurang' ? 'text-amber-500' : 'text-gray-400';
+                                    const isOpen   = openRow === i;
+                                    const meals    = d.meals ?? [];
+                                    const hasMeals = meals.length > 0;
+
+                                    // Group meals by meal_type
+                                    const grouped = meals.reduce((acc, m) => {
+                                        const key = m.meal_type ?? 'snack';
+                                        if (!acc[key]) acc[key] = [];
+                                        acc[key].push(m);
+                                        return acc;
+                                    }, {});
+
                                     return (
-                                        <tr key={i} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                            <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{d.date}</td>
-                                            <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{d.total_calories}</td>
-                                            <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{d.target_calories}</td>
-                                            <td className="px-4 py-3 text-blue-600 dark:text-blue-400">{Math.round(d.macros.protein)}g</td>
-                                            <td className="px-4 py-3 text-amber-600 dark:text-amber-400">{Math.round(d.macros.carbs)}g</td>
-                                            <td className="px-4 py-3 text-rose-600 dark:text-rose-400">{Math.round(d.macros.fat)}g</td>
-                                            <td className="px-4 py-3"><span className={`text-xs font-semibold ${scls}`}>{status}</span></td>
-                                        </tr>
+                                        <>
+                                            {/* ── Summary row ── */}
+                                            <tr
+                                                key={`row-${i}`}
+                                                onClick={() => hasMeals && toggleRow(i)}
+                                                className={`border-b border-gray-50 dark:border-gray-800/50 transition-colors
+                                                    ${hasMeals ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50' : ''}
+                                                    ${isOpen ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}
+                                            >
+                                                {/* Chevron */}
+                                                <td className="px-4 py-3 text-gray-400">
+                                                    {hasMeals
+                                                        ? isOpen
+                                                            ? <ChevronUp className="w-3.5 h-3.5 text-emerald-500" />
+                                                            : <ChevronDown className="w-3.5 h-3.5" />
+                                                        : <span className="w-3.5 h-3.5 block" />
+                                                    }
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{d.date}</td>
+                                                <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{d.total_calories}</td>
+                                                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{d.target_calories}</td>
+                                                <td className="px-4 py-3 text-blue-600 dark:text-blue-400">{Math.round(d.macros.protein)}g</td>
+                                                <td className="px-4 py-3 text-amber-600 dark:text-amber-400">{Math.round(d.macros.carbs)}g</td>
+                                                <td className="px-4 py-3 text-rose-600 dark:text-rose-400">{Math.round(d.macros.fat)}g</td>
+                                                <td className="px-4 py-3"><span className={`text-xs font-semibold ${scls}`}>{status}</span></td>
+                                            </tr>
+
+                                            {/* ── Expanded detail row ── */}
+                                            {isOpen && (
+                                                <tr key={`detail-${i}`} className="border-b border-gray-100 dark:border-gray-800">
+                                                    <td colSpan={8} className="px-6 py-4 bg-gray-50/80 dark:bg-gray-800/30">
+                                                        <div className="space-y-4">
+                                                            {['breakfast', 'lunch', 'dinner', 'snack'].map(type => {
+                                                                const items = grouped[type];
+                                                                if (!items?.length) return null;
+                                                                return (
+                                                                    <div key={type}>
+                                                                        {/* Meal type label */}
+                                                                        <div className="flex items-center gap-2 mb-2">
+                                                                            <Utensils className="w-3 h-3 text-gray-400" />
+                                                                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${MEAL_COLORS[type]}`}>
+                                                                                {MEAL_LABELS[type]}
+                                                                            </span>
+                                                                            <span className="text-xs text-gray-400">
+                                                                                {items.reduce((s, m) => s + m.calories, 0)} kkal
+                                                                            </span>
+                                                                        </div>
+
+                                                                        {/* Food items */}
+                                                                        <div className="space-y-1.5 pl-5">
+                                                                            {items.map((meal, j) => (
+                                                                                <div key={j} className="flex items-center justify-between gap-4 text-xs">
+                                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
+                                                                                        <span className="text-gray-800 dark:text-gray-200 font-medium truncate">{meal.name}</span>
+                                                                                        <span className="text-gray-400 flex-shrink-0">
+                                                                                            {new Date(meal.eaten_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                                                                                        <span className="text-gray-700 dark:text-gray-300 font-semibold w-16">{meal.calories} kkal</span>
+                                                                                        <span className="text-blue-500 w-12">P {Math.round(meal.protein)}g</span>
+                                                                                        <span className="text-amber-500 w-12">K {Math.round(meal.carbs)}g</span>
+                                                                                        <span className="text-rose-500 w-12">L {Math.round(meal.fat)}g</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </>
                                     );
                                 })}
                             </tbody>

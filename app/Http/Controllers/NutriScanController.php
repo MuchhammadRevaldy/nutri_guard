@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ScanQuota;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Process;
+use Inertia\Inertia;
 
 class NutriScanController extends Controller
 {
@@ -13,14 +14,14 @@ class NutriScanController extends Controller
 
     public function index()
     {
-        $user = auth()->user();
-        $this->resetScanCountIfNeeded($user);
+        $user  = auth()->user();
+        $quota = $this->getTodayQuota($user);
 
         return Inertia::render('NutriScan', [
             'analysis'       => session('analysis'),
             'error'          => session('error'),
-            'scansUsed'      => $user->scan_count_today,
-            'scansRemaining' => max(0, self::MAX_SCANS_PER_DAY - $user->scan_count_today),
+            'scansUsed'      => $quota->scan_count,
+            'scansRemaining' => max(0, self::MAX_SCANS_PER_DAY - $quota->scan_count),
             'maxScans'       => self::MAX_SCANS_PER_DAY,
         ]);
     }
@@ -28,39 +29,45 @@ class NutriScanController extends Controller
     public function analyze(Request $request)
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png|max:5120', // 5MB max, jpg/jpeg/png only
+            'image' => 'required|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
-        $user = auth()->user();
-        $this->resetScanCountIfNeeded($user);
+        $user  = auth()->user();
+        $quota = $this->getTodayQuota($user);
 
-        if ($user->scan_count_today >= self::MAX_SCANS_PER_DAY) {
+        if ($quota->scan_count >= self::MAX_SCANS_PER_DAY) {
             return redirect()->route('nutriscan.index')
                 ->with('error', 'Batas scan harian (' . self::MAX_SCANS_PER_DAY . 'x) sudah tercapai. Coba lagi besok.');
         }
 
-        // Store temporarily (not permanently per privacy constraint)
         $path         = $request->file('image')->store('nutriscan', 'public');
         $absolutePath = storage_path('app/public/' . $path);
 
         $pythonExec   = config('services.nutriscan.python_path', 'python');
         $pythonScript = base_path('services/python/predict_cli.py');
 
+        $groqKey = env('GROQ_API_KEY', '');
+
         if (PHP_OS_FAMILY === 'Windows') {
             $process = Process::env([
-                'SYSTEMROOT' => getenv('SYSTEMROOT'),
-                'PATH'       => getenv('PATH'),
-                'TEMP'       => getenv('TEMP'),
-                'TMP'        => getenv('TMP'),
+                'SYSTEMROOT'  => getenv('SYSTEMROOT'),
+                'PATH'        => getenv('PATH'),
+                'TEMP'        => getenv('TEMP'),
+                'TMP'         => getenv('TMP'),
+                'USERNAME'    => getenv('USERNAME') ?: getenv('USER') ?: 'user',
+                'USERPROFILE' => getenv('USERPROFILE') ?: getenv('HOME') ?: 'C:\\Users\\user',
+                'HOMEPATH'    => getenv('HOMEPATH') ?: '\\Users\\user',
+                'APPDATA'     => getenv('APPDATA') ?: getenv('TEMP'),
+                'GROQ_API_KEY' => $groqKey,
             ])->run([$pythonExec, $pythonScript, $absolutePath]);
         } else {
-            $process = Process::run([$pythonExec, $pythonScript, $absolutePath]);
+            $process = Process::env([
+                'HOME'         => getenv('HOME') ?: '/tmp',
+                'USER'         => getenv('USER') ?: 'www-data',
+                'PATH'         => getenv('PATH'),
+                'GROQ_API_KEY' => $groqKey,
+            ])->run([$pythonExec, $pythonScript, $absolutePath]);
         }
-
-        // Increment scan count regardless of result
-        $user->increment('scan_count_today');
-        $user->scan_date = now()->toDateString();
-        $user->save();
 
         if ($process->successful()) {
             $output = $process->output();
@@ -69,21 +76,33 @@ class NutriScanController extends Controller
             $aiData = json_decode($output, true);
 
             if ($aiData && !isset($aiData['error'])) {
+                // Kuota hanya bertambah jika analisis benar-benar berhasil
+                $quota->increment('scan_count');
                 $aiData['image_url'] = Storage::url($path);
                 return redirect()->route('nutriscan.index')->with('analysis', $aiData);
             }
 
+            // Model mengembalikan error (misal: model load fail) — kuota tidak berkurang
             $errorMsg = $aiData['error'] ?? 'Gagal memproses analisis nutrisi.';
+            \Illuminate\Support\Facades\Log::warning('NutriScan Model Error: ' . $errorMsg);
+            Storage::disk('public')->delete($path);
             return redirect()->route('nutriscan.index')->with('error', $errorMsg);
         }
 
-        $errorOutput = $process->errorOutput();
-        \Illuminate\Support\Facades\Log::error('NutriScan Error: ' . $errorOutput);
-
-        // Delete temp image after processing (privacy compliance)
+        // Sistem error (Python crash, path salah, dll) — kuota tidak berkurang
+        $stderr = $process->errorOutput();
+        \Illuminate\Support\Facades\Log::error('NutriScan Error: ' . $stderr);
         Storage::disk('public')->delete($path);
 
-        return redirect()->route('nutriscan.index')->with('error', 'Terjadi kesalahan sistem saat menjalankan analisis.');
+        // Tampilkan pesan lebih spesifik jika bisa dideteksi
+        $errorMsg = 'Terjadi kesalahan sistem saat menjalankan analisis.';
+        if (str_contains($stderr, 'ModuleNotFoundError')) {
+            $errorMsg = 'Library Python belum lengkap. Hubungi administrator.';
+        } elseif (str_contains($stderr, 'No such file or directory') || str_contains($stderr, 'cannot find')) {
+            $errorMsg = 'Konfigurasi Python tidak ditemukan. Hubungi administrator.';
+        }
+
+        return redirect()->route('nutriscan.index')->with('error', $errorMsg);
     }
 
     public function storeLog(Request $request)
@@ -109,35 +128,32 @@ class NutriScanController extends Controller
             ?? $user->familyMembers()->first();
 
         if ($member) {
-            // Health risk check: calorie extremes
             $todayCalories = $member->foodLogs()->whereDate('eaten_at', now())->sum('calories');
             $newTotal      = $todayCalories + $data['calories'];
             $goal          = $member->daily_calorie_goal ?? 2000;
 
-            // Delete temp image immediately after logging (privacy constraint)
             if (!empty($data['image_url'])) {
                 $relativePath = str_replace('/storage/', '', $data['image_url']);
                 Storage::disk('public')->delete($relativePath);
             }
 
             $member->foodLogs()->create([
-                'name'       => $data['food_name'],
-                'calories'   => $data['calories'],
-                'protein'    => $data['protein'],
-                'carbs'      => $data['carbs'],
-                'fat'        => $data['fat'],
-                'fiber'      => $data['fiber'] ?? null,
-                'sodium'     => $data['sodium'] ?? null,
-                'sugar'      => $data['sugar'] ?? null,
-                'meal_type'  => $data['meal_type'] ?? 'lunch',
-                'image_path' => null, // Not stored permanently
-                'eaten_at'   => now(),
+                'name'      => $data['food_name'],
+                'calories'  => $data['calories'],
+                'protein'   => $data['protein'],
+                'carbs'     => $data['carbs'],
+                'fat'       => $data['fat'],
+                'fiber'     => $data['fiber'] ?? null,
+                'sodium'    => $data['sodium'] ?? null,
+                'sugar'     => $data['sugar'] ?? null,
+                'meal_type' => $data['meal_type'] ?? 'lunch',
+                'source'    => 'nutriscan',
+                'eaten_at'  => now(),
             ]);
 
-            // Health risk warning for extreme calorie intake
             $warning = null;
             if ($newTotal > $goal * 1.5) {
-                $warning = 'Peringatan: Asupan kalori hari ini (' . $newTotal . ' kkal) sudah jauh melebihi target (' . $goal . ' kkal). Perhatikan porsi makanmu.';
+                $warning = 'Peringatan: Asupan kalori hari ini (' . $newTotal . ' kkal) sudah jauh melebihi target (' . $goal . ' kkal).';
             } elseif ($newTotal < 500 && now()->hour >= 18) {
                 $warning = 'Peringatan: Asupan kalori hari ini sangat rendah (' . $newTotal . ' kkal). Pastikan kamu makan cukup.';
             }
@@ -150,13 +166,11 @@ class NutriScanController extends Controller
         return redirect()->route('dashboard')->with('success', 'Makanan berhasil dicatat!');
     }
 
-    private function resetScanCountIfNeeded($user): void
+    private function getTodayQuota($user): ScanQuota
     {
-        $today = now()->toDateString();
-        if ($user->scan_date !== $today) {
-            $user->scan_count_today = 0;
-            $user->scan_date        = $today;
-            $user->save();
-        }
+        return ScanQuota::firstOrCreate(
+            ['user_id' => $user->id, 'scan_date' => now()->toDateString()],
+            ['scan_count' => 0]
+        );
     }
 }

@@ -51,8 +51,8 @@ export default function Authenticated({ user, header, children, headerActions })
                 {/* User profile */}
                 <Link href={route('profile.edit')} className="flex items-center gap-3 px-5 py-4 border-b border-white/10 hover:bg-white/5 transition-colors flex-shrink-0">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-emerald-500/30">
-                        {user.avatar ? (
-                            <img src={`/storage/${user.avatar}`} alt="avatar" className="w-full h-full object-cover" />
+                        {user.avatar_url ? (
+                            <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                         ) : (
                             <span className="text-white font-bold text-sm">{user.name.charAt(0).toUpperCase()}</span>
                         )}

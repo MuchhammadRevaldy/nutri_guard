@@ -20,7 +20,7 @@ class FoodLog extends Model
         'sodium',
         'sugar',
         'meal_type',
-        'image_path',
+        'source',
         'eaten_at',
         'tags',
     ];

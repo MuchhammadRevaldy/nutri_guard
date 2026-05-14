@@ -53,11 +53,7 @@ export default function DayBreakdown({ day }) {
                                 <div key={idx} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden flex-shrink-0">
-                                            {meal.image_path ? (
-                                                <img src={meal.image_path} alt={meal.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="flex items-center justify-center h-full text-lg">🍲</span>
-                                            )}
+                                            <span className="flex items-center justify-center h-full text-lg">🍲</span>
                                         </div>
                                         <div>
                                             <div className="font-medium text-gray-900 dark:text-white">{meal.name}</div>

@@ -9,13 +9,11 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        // Reset scan count for all users every midnight (Business Rule: daily scan limit)
+        // scan_quotas dibuat per-hari secara natural, tidak perlu reset.
+        // Hapus record lama (> 30 hari) agar tabel tidak membesar.
         $schedule->call(function () {
-            \App\Models\User::query()->update([
-                'scan_count_today' => 0,
-                'scan_date'        => now()->toDateString(),
-            ]);
-        })->dailyAt('00:00')->name('reset-daily-scan-count');
+            \App\Models\ScanQuota::where('scan_date', '<', now()->subDays(30)->toDateString())->delete();
+        })->dailyAt('00:00')->name('cleanup-old-scan-quotas');
     }
 
     protected function commands(): void

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FamilyMember extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -16,18 +17,17 @@ class FamilyMember extends Model
         'role',
         'gender',
         'birth_date',
-        'weight',
-        'height',
         'activity_level',
         'health_goal',
         'daily_calorie_goal',
         'allergies',
+        'avatar_url',
+        'avatar_source',
+        'avatar_provider',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
-        'weight'     => 'decimal:2',
-        'height'     => 'decimal:2',
         'allergies'  => 'array',
     ];
 
@@ -46,12 +46,14 @@ class FamilyMember extends Model
         return $this->hasMany(FoodLog::class);
     }
 
-    /**
-     * Alias for logs, used in Controllers
-     */
     public function foodLogs()
     {
         return $this->hasMany(FoodLog::class);
+    }
+
+    public function growthLogs()
+    {
+        return $this->hasMany(GrowthLog::class);
     }
 
     protected $appends = ['age_category'];
@@ -98,14 +100,18 @@ class FamilyMember extends Model
      */
     public function recalculateCalories()
     {
-        if (!$this->weight || !$this->height || !$this->birth_date || !$this->gender) {
-            return; // Cannot calculate without data
+        $latestGrowth = $this->growthLogs()->latest('recorded_at')->first();
+
+        if (!$latestGrowth || !$latestGrowth->weight || !$latestGrowth->height || !$this->birth_date || !$this->gender) {
+            return;
         }
 
-        $age = $this->birth_date->age;
+        $weight = $latestGrowth->weight;
+        $height = $latestGrowth->height;
+        $age    = $this->birth_date->age;
 
         // 1. Calculate BMR (Mifflin-St Jeor Equation)
-        $bmr = (10 * $this->weight) + (6.25 * $this->height) - (5 * $age);
+        $bmr = (10 * $weight) + (6.25 * $height) - (5 * $age);
 
         if ($this->gender === 'male') {
             $bmr += 5;

@@ -27,13 +27,10 @@ class FamilyController extends Controller
                 ->first();
 
             if ($linkedProfile) {
-                // Use the real data from the user's own profile
-                $member->birth_date = $linkedProfile->birth_date;
-                $member->gender = $linkedProfile->gender;
-                $member->weight = $linkedProfile->weight;
-                $member->height = $linkedProfile->height;
-                $member->health_goal = $linkedProfile->health_goal;
-                $member->activity_level = $linkedProfile->activity_level;
+                $member->birth_date         = $linkedProfile->birth_date;
+                $member->gender             = $linkedProfile->gender;
+                $member->health_goal        = $linkedProfile->health_goal;
+                $member->activity_level     = $linkedProfile->activity_level;
                 $member->daily_calorie_goal = $linkedProfile->daily_calorie_goal;
             }
         }
@@ -223,14 +220,17 @@ class FamilyController extends Controller
             'health_goal' => 'nullable|in:loss,maintenance,gain,growth',
         ]);
 
-        $member->fill($request->all());
+        $member->fill($request->only([
+            'name', 'birth_date', 'gender', 'activity_level', 'health_goal',
+        ]));
 
-        if ($member->isDirty(['weight', 'height'])) {
+        // weight & height disimpan di growth_logs, bukan di family_members
+        if ($request->filled('weight') || $request->filled('height')) {
             \App\Models\GrowthLog::create([
                 'family_member_id' => $member->id,
-                'weight' => $member->weight ?? 0,
-                'height' => $member->height ?? 0,
-                'recorded_at' => now(),
+                'weight'           => $request->weight ?? null,
+                'height'           => $request->height ?? null,
+                'recorded_at'      => now(),
             ]);
         }
 
