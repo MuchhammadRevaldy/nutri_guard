@@ -5,6 +5,11 @@ from torchvision import models, transforms
 from PIL import Image
 import os
 
+# Fix for "could not create a primitive" error on some CPU environments
+# This disables the MKL-DNN backend which can be unstable on certain VPS hardware
+torch.backends.mkldnn.enabled = False
+
+
 # 1. Food-101 Class Names
 CLASSES = [
     'apple_pie', 'baby_back_ribs', 'baklava', 'beef_carpaccio', 'beef_tartare',
@@ -140,11 +145,13 @@ DEFAULT_NUTRI = {'cal': 300, 'prot': 15, 'carb': 30, 'fat': 12, 'sod': 400, 'sug
 
 def load_model(model_path):
     try:
-        model = models.resnet50(pretrained=False)
+        # Fix deprecation warning: use weights=None instead of pretrained=False
+        model = models.resnet50(weights=None)
         num_ftrs = model.fc.in_features
         model.fc = torch.nn.Linear(num_ftrs, 101)
         
-        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        # Fix PyTorch 2.6+ security change: explicit weights_only=False
+        state_dict = torch.load(model_path, map_location=torch.device('cpu'), weights_only=False)
         if 'state_dict' in state_dict:
             state_dict = state_dict['state_dict']
             
@@ -171,14 +178,30 @@ def predict(image_path, model_path):
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
+    image = None
+    input_tensor = None
+    
     try:
-        image = Image.open(image_path).convert('RGB')
-        input_tensor = transform(image).unsqueeze(0)
-        
-        with torch.no_grad():
-            outputs = model(input_tensor)
-            probabilities = torch.nn.functional.softmax(outputs, dim=1)
-            confidence, predicted_idx = torch.max(probabilities, 1)
+        # Step 1: Open Image
+        try:
+            image = Image.open(image_path).convert('RGB')
+        except Exception as e:
+            raise RuntimeError(f"Image Open Failed: {e}")
+
+        # Step 2: Transform
+        try:
+            input_tensor = transform(image).unsqueeze(0)
+        except Exception as e:
+            raise RuntimeError(f"Transform Failed: {e}")
+            
+        # Step 3: Inference
+        try:
+            with torch.no_grad():
+                outputs = model(input_tensor)
+                probabilities = torch.nn.functional.softmax(outputs, dim=1)
+                confidence, predicted_idx = torch.max(probabilities, 1)
+        except Exception as e:
+            raise RuntimeError(f"Inference Failed (Torch {torch.__version__}): {e}")
             
         class_idx = predicted_idx.item()
         conf_score = confidence.item() * 100
@@ -229,6 +252,7 @@ def predict(image_path, model_path):
                 'sugar': nutri['sug']
             },
             'portion': '1 serving',
+            'debug_info': f"Torch {torch.__version__} (MKLDNN Disabled)"
         }
         
         print(json.dumps(result))
