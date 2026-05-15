@@ -155,6 +155,53 @@ export default function Dashboard({ auth, familyMembers, logsByMealType, dailySt
                 </div>
                 </FadeUp>
 
+                {/* Family Members — Instagram Stories style */}
+                <FadeUp delay={50}>
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Anggota Keluarga</div>
+                    <div className="flex gap-5 overflow-x-auto py-3 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+
+                        {/* Add member circle */}
+                        <button onClick={() => setIsInviteOpen(true)} className="flex flex-col items-center gap-2 flex-shrink-0 group transition-transform duration-200 hover:scale-110">
+                            <div className="w-[62px] h-[62px] rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 group-hover:border-emerald-400 dark:group-hover:border-emerald-500 flex items-center justify-center transition-colors duration-200">
+                                <Plus className="w-6 h-6 text-gray-400 dark:text-gray-500 group-hover:text-emerald-500 transition-colors" />
+                            </div>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400">Undang</span>
+                        </button>
+
+                        {/* Stories */}
+                        {(familyMembers ?? []).map((m, i) => {
+                            const gradients = [
+                                'from-emerald-400 via-teal-400 to-cyan-500',
+                                'from-purple-500 via-pink-500 to-rose-400',
+                                'from-orange-400 via-amber-400 to-yellow-400',
+                                'from-blue-500 via-indigo-400 to-violet-400',
+                                'from-rose-400 via-pink-400 to-fuchsia-500',
+                                'from-teal-400 via-emerald-500 to-green-500',
+                            ];
+                            const grad = gradients[i % gradients.length];
+                            return (
+                                <Link key={m.id} href={route('family.show', m.id)} className="flex flex-col items-center gap-2 flex-shrink-0 transition-transform duration-200 hover:scale-110">
+                                    <div className={`p-[3px] rounded-full bg-gradient-to-tr ${grad} shadow-sm`}>
+                                        <div className="w-[58px] h-[58px] rounded-full bg-white dark:bg-gray-900 p-[3px]">
+                                            <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-xl">
+                                                {m.display_avatar
+                                                    ? <img src={m.display_avatar} alt={m.name} className="w-full h-full object-cover" />
+                                                    : m.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-center max-w-[72px]">
+                                        <div className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 truncate">{m.name}</div>
+                                        {m.age_category && <div className="text-[10px] text-gray-400 dark:text-gray-500">{m.age_category}</div>}
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
+                </FadeUp>
+
                 <FadeUp delay={100}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-4">
@@ -253,28 +300,6 @@ export default function Dashboard({ auth, familyMembers, logsByMealType, dailySt
                         </div>
                         </FadeUp>
 
-                        <FadeUp delay={300}>
-                        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-                            <div className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Anggota Keluarga</div>
-                            <div className="space-y-2">
-                                {(familyMembers ?? []).slice(0, 4).map(m => (
-                                    <Link key={m.id} href={route('family.show', m.id)}
-                                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center overflow-hidden text-white text-xs font-bold flex-shrink-0 ring-1 ring-emerald-500/20">
-                                            {m.display_avatar ? <img src={m.display_avatar} alt="avatar" className="w-full h-full object-cover" /> : m.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{m.name}</div>
-                                            {m.age_category && <div className="text-xs text-gray-500 dark:text-gray-400">{m.age_category}</div>}
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                            <button onClick={() => setIsInviteOpen(true)} className="mt-3 w-full flex items-center justify-center gap-1 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors">
-                                <Plus className="w-3.5 h-3.5" /> Undang Anggota
-                            </button>
-                        </div>
-                        </FadeUp>
                     </div>
                 </div>
                 </FadeUp>
