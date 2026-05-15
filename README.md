@@ -1,3 +1,12 @@
+---
+title: NutriGuard
+emoji: 🥗
+colorFrom: green
+colorTo: emerald
+sdk: docker
+pinned: false
+---
+
 # NutriGuard — Panduan Instalasi
 
 Platform manajemen nutrisi keluarga berbasis AI: NutriScan, FitChef, Meal Planner, Family Dashboard.
