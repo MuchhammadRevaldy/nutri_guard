@@ -8,7 +8,7 @@ import {
 } from 'chart.js';
 import { TrendingUp, Target, Award, Download, ChevronDown, ChevronUp, Utensils } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import FadeUp from '@/Components/FadeUp';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend);
@@ -68,18 +68,158 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
     };
 
     function exportPDF() {
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text('Laporan Nutrisi Mingguan', 14, 20);
+        const doc     = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageW   = doc.internal.pageSize.getWidth();
+        const margin  = 14;
+        const contentW = pageW - margin * 2;
+
+        // ── Header ──────────────────────────────────────────────────────
+        doc.setFillColor(16, 185, 129);
+        doc.rect(0, 0, pageW, 32, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Laporan Nutrisi Mingguan', margin, 14);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Periode: ${weekRange}   |   Rata-rata: ${avgCalories} kkal/hari`, margin, 24);
+
+        let y = 40;
+
+        // ── Ringkasan Mingguan ───────────────────────────────────────────
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.text(`Periode: ${weekRange}`, 14, 28);
-        doc.text(`Rata-rata kalori: ${avgCalories} kkal/hari`, 14, 34);
-        doc.autoTable({
-            startY: 42,
+        doc.setTextColor(30, 30, 30);
+        doc.text('Ringkasan Mingguan', margin, y);
+        y += 4;
+
+        autoTable(doc, {
+            startY: y,
             head: [['Tanggal', 'Kalori', 'Target', 'Protein', 'Karbo', 'Lemak']],
-            body: dailyBreakdown.map(d => [d.date, d.total_calories, d.target_calories, Math.round(d.macros.protein) + 'g', Math.round(d.macros.carbs) + 'g', Math.round(d.macros.fat) + 'g']),
-            styles: { fontSize: 9 },
+            body: dailyBreakdown.map(d => [
+                d.date,
+                d.total_calories + ' kkal',
+                d.target_calories + ' kkal',
+                Math.round(d.macros.protein) + 'g',
+                Math.round(d.macros.carbs) + 'g',
+                Math.round(d.macros.fat) + 'g',
+            ]),
+            styles:     { fontSize: 8.5, cellPadding: 2.5 },
+            headStyles: { fillColor: [16, 185, 129], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [245, 255, 250] },
+            margin: { left: margin, right: margin },
         });
+
+        y = doc.lastAutoTable.finalY + 12;
+
+        // ── Detail Per Hari ──────────────────────────────────────────────
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(30, 30, 30);
+        doc.text('Detail Makanan Per Hari', margin, y);
+        y += 6;
+
+        for (const day of dailyBreakdown) {
+            if (y > 255) { doc.addPage(); y = 15; }
+
+            // Day header row
+            doc.setFillColor(240, 253, 250);
+            doc.roundedRect(margin, y, contentW, 9, 1.5, 1.5, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(5, 120, 85);
+            doc.text(day.date, margin + 3, y + 6);
+
+            // Calorie bar (drawn on the right side of the header)
+            const barX   = margin + 55;
+            const barW   = contentW - 60;
+            const barH   = 4;
+            const barY   = y + 2.5;
+            const pct    = day.target_calories > 0 ? Math.min(1, day.total_calories / day.target_calories) : 0;
+
+            // Background track
+            doc.setFillColor(209, 250, 229);
+            doc.roundedRect(barX, barY, barW, barH, 1, 1, 'F');
+
+            // Fill bar
+            if (pct > 0) {
+                const [r, g, b] = pct > 1.1 ? [239, 68, 68] : pct >= 0.8 ? [16, 185, 129] : [251, 191, 36];
+                doc.setFillColor(r, g, b);
+                doc.roundedRect(barX, barY, barW * pct, barH, 1, 1, 'F');
+            }
+
+            // Calorie label next to bar (inside header row right side)
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(80, 80, 80);
+            doc.text(`${day.total_calories}/${day.target_calories} kkal`, barX + barW + 2, y + 6);
+
+            y += 11;
+
+            // Meals table for this day
+            if (day.meals && day.meals.length > 0) {
+                autoTable(doc, {
+                    startY: y,
+                    head: [['Makanan', 'Waktu', 'Kalori', 'Protein', 'Karbo', 'Lemak']],
+                    body: day.meals.map(m => [
+                        m.name ?? '-',
+                        m.eaten_at ? new Date(m.eaten_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        (m.calories ?? 0) + ' kkal',
+                        Math.round(m.protein ?? 0) + 'g',
+                        Math.round(m.carbs ?? 0) + 'g',
+                        Math.round(m.fat ?? 0) + 'g',
+                    ]),
+                    styles: {
+                        fontSize: 7.5,
+                        cellPadding: 2,
+                        textColor: [50, 50, 50],
+                    },
+                    headStyles: {
+                        fillColor: [229, 231, 235],
+                        textColor: [60, 60, 60],
+                        fontStyle: 'bold',
+                        fontSize: 7.5,
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 65 },  // nama makanan lebih lebar
+                        1: { cellWidth: 18 },  // waktu
+                        2: { cellWidth: 22 },  // kalori
+                        3: { cellWidth: 16 },
+                        4: { cellWidth: 16 },
+                        5: { cellWidth: 16 },
+                    },
+                    margin: { left: margin + 3, right: margin },
+                    tableLineColor: [230, 230, 230],
+                    tableLineWidth: 0.1,
+                });
+                y = doc.lastAutoTable.finalY + 4;
+            } else {
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(7.5);
+                doc.setTextColor(160, 160, 160);
+                doc.text('Tidak ada data makanan pada hari ini.', margin + 4, y + 4);
+                y += 9;
+            }
+
+            // Divider
+            doc.setDrawColor(220, 220, 220);
+            doc.setLineWidth(0.2);
+            doc.line(margin, y, pageW - margin, y);
+            y += 5;
+        }
+
+        // ── Footer ───────────────────────────────────────────────────────
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(7);
+            doc.setTextColor(180, 180, 180);
+            doc.text(
+                `NutriGuard  •  Laporan Nutrisi Mingguan  •  Halaman ${i} dari ${pageCount}`,
+                pageW / 2, 291, { align: 'center' }
+            );
+        }
+
         doc.save(`laporan-nutrisi-${weekRange.replace(/\s/g, '-')}.pdf`);
     }
 

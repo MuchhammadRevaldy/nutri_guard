@@ -6,9 +6,11 @@ import {
     CalendarDays, Plus, Trash2, X, Coffee, Sun, Sunset, Moon,
     ChevronLeft, ChevronRight, Sparkles, RefreshCw, PlusCircle,
     Zap, AlertTriangle, CheckCircle, Loader2, Flame, Beef, Wheat, Droplets, StickyNote,
-    ChefHat, Clock, Users, Star, ArrowLeft, Lightbulb, ListOrdered
+    ChefHat, Clock, Users, Star, ArrowLeft, Lightbulb, ListOrdered, Download
 } from 'lucide-react';
 import FadeUp from '@/Components/FadeUp';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const MEAL_META = {
     breakfast: { label: 'Sarapan',     icon: Coffee,  color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20',    border: 'border-amber-200 dark:border-amber-800' },
@@ -81,6 +83,138 @@ function AddMealModal({ date, mealType, calorieGoal, onClose }) {
             </div>
         </div>
     );
+}
+
+// ── Download Meal Plan Recipe PDF ─────────────────────────────────────────────
+function downloadMealPDF(meal, recipe) {
+    const doc      = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW    = doc.internal.pageSize.getWidth();
+    const margin   = 14;
+    const contentW = pageW - margin * 2;
+
+    // Header bar
+    doc.setFillColor(16, 185, 129);
+    doc.rect(0, 0, pageW, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(17);
+    doc.setFont('helvetica', 'bold');
+    const title = doc.splitTextToSize(meal.name, contentW);
+    doc.text(title[0], margin, 13);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    const meta = [
+        recipe.prep_time  ? `Persiapan: ${recipe.prep_time}`  : null,
+        recipe.cook_time  ? `Memasak: ${recipe.cook_time}`    : null,
+        recipe.servings   ? `Porsi: ${recipe.servings}`       : null,
+        recipe.difficulty ? `Tingkat: ${recipe.difficulty}`   : null,
+    ].filter(Boolean).join('   |   ');
+    if (meta) doc.text(meta, margin, 23);
+
+    // Nutrition info (if available from meal)
+    let y = 38;
+    if (meal.calories || meal.protein || meal.carbs || meal.fat) {
+        autoTable(doc, {
+            startY: y,
+            head:   [['Kalori', 'Protein', 'Karbohidrat', 'Lemak']],
+            body:   [[
+                meal.calories ? `${meal.calories} kkal` : '-',
+                meal.protein  ? `${meal.protein}g` : '-',
+                meal.carbs    ? `${meal.carbs}g`   : '-',
+                meal.fat      ? `${meal.fat}g`     : '-',
+            ]],
+            styles:     { fontSize: 8.5, halign: 'center', cellPadding: 2.5 },
+            headStyles: { fillColor: [16, 185, 129], textColor: 255, fontStyle: 'bold' },
+            margin:     { left: margin, right: margin },
+        });
+        y = doc.lastAutoTable.finalY + 8;
+    }
+
+    // Ingredients
+    if (recipe.ingredients?.length) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(16, 185, 129);
+        doc.text('BAHAN-BAHAN', margin, y);
+        y += 5;
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(50, 50, 50);
+        const half = Math.ceil(recipe.ingredients.length / 2);
+        const colW = contentW / 2 - 3;
+        recipe.ingredients.forEach((ing, idx) => {
+            const col  = idx < half ? 0 : 1;
+            const row  = idx < half ? idx : idx - half;
+            const x    = margin + col * (colW + 6);
+            const yPos = y + row * 5;
+            if (yPos > 270) { doc.addPage(); y = 15 - row * 5; }
+            doc.setTextColor(16, 185, 129);
+            doc.text('•', x, y + row * 5);
+            doc.setTextColor(50, 50, 50);
+            const lines = doc.splitTextToSize(ing, colW - 4);
+            doc.text(lines[0], x + 4, y + row * 5);
+        });
+        y += half * 5 + 8;
+        if (y > 265) { doc.addPage(); y = 15; }
+    }
+
+    // Steps
+    if (recipe.steps?.length) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(16, 185, 129);
+        doc.text('LANGKAH MEMASAK', margin, y);
+        y += 6;
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(50, 50, 50);
+        recipe.steps.forEach((step, idx) => {
+            if (y > 270) { doc.addPage(); y = 15; }
+            doc.setFillColor(16, 185, 129);
+            doc.circle(margin + 2.5, y - 1.5, 2.5, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(7);
+            doc.text(String(idx + 1), margin + (idx + 1 < 10 ? 1.5 : 0.8), y - 0.2);
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(8.5);
+            const lines = doc.splitTextToSize(step, contentW - 9);
+            doc.text(lines, margin + 7, y);
+            y += lines.length * 4.5 + 2;
+        });
+    }
+
+    // Tips
+    if (recipe.tips) {
+        if (y > 260) { doc.addPage(); y = 15; }
+        y += 4;
+        const tipLines = doc.splitTextToSize(recipe.tips, contentW - 10);
+        const tipBoxH  = 8 + tipLines.length * 4.5;
+        doc.setFillColor(254, 243, 199);
+        doc.roundedRect(margin, y, contentW, tipBoxH, 2, 2, 'F');
+        doc.setFillColor(217, 119, 6);
+        doc.roundedRect(margin, y, 2, tipBoxH, 1, 1, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(146, 64, 14);
+        doc.text('Tips Koki:', margin + 5, y + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(92, 45, 10);
+        doc.text(tipLines, margin + 5, y + 10);
+    }
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(180, 180, 180);
+        doc.text(
+            `NutriGuard Meal Plan  •  Halaman ${i} dari ${pageCount}`,
+            pageW / 2, 291, { align: 'center' }
+        );
+    }
+
+    const filename = meal.name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-').toLowerCase();
+    doc.save(`meal-${filename}.pdf`);
 }
 
 // ── Meal Detail Modal ────────────────────────────────────────────────────────
@@ -315,6 +449,15 @@ function MealDetailModal({ meal, onClose, onDelete }) {
                                         <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed"><strong>Tips:</strong> {recipe.tips}</p>
                                     </div>
                                 )}
+
+                                {/* Download PDF button */}
+                                <button
+                                    onClick={() => downloadMealPDF(meal, recipe)}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/20 dark:bg-emerald-500/15 backdrop-blur-sm border border-emerald-400/50 dark:border-emerald-400/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/30 dark:hover:bg-emerald-400/25 rounded-xl text-sm font-semibold shadow-sm transition-all"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Download Resep PDF
+                                </button>
                             </>
                         )}
                     </div>

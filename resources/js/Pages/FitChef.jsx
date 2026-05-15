@@ -3,11 +3,11 @@ import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import FadeUp from '@/Components/FadeUp';
 import {
     ChefHat, Plus, X, AlertTriangle, Clock, Flame,
-    Loader2, ChevronDown, ChevronUp, Download,
+    Loader2, ChevronDown, Download,
     Users, Beef, Wheat, Droplets, Lightbulb,
 } from 'lucide-react';
 
@@ -40,7 +40,7 @@ function downloadRecipePDF(recipe) {
     // Nutrition table
     doc.setTextColor(0, 0, 0);
     let y = 36;
-    doc.autoTable({
+    autoTable(doc, {
         startY: y,
         head:   [['Kalori', 'Protein', 'Karbohidrat', 'Lemak', 'Persiapan', 'Memasak', 'Porsi']],
         body:   [[
@@ -128,17 +128,21 @@ function downloadRecipePDF(recipe) {
     if (recipe.tips) {
         if (y > 260) { doc.addPage(); y = 15; }
         y += 4;
-        doc.setFillColor(254, 252, 232); // amber-50
-        doc.roundedRect(margin, y, contentW, 14, 2, 2, 'F');
+        doc.setFillColor(254, 243, 199); // amber-100
+        const tipLines = doc.splitTextToSize(recipe.tips, contentW - 10);
+        const tipBoxH  = 8 + tipLines.length * 4.5;
+        doc.roundedRect(margin, y, contentW, tipBoxH, 2, 2, 'F');
+        // left accent bar
+        doc.setFillColor(217, 119, 6);
+        doc.roundedRect(margin, y, 2, tipBoxH, 1, 1, 'F');
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(180, 120, 0);
-        doc.text('💡 Tips Koki:', margin + 3, y + 5);
+        doc.setTextColor(146, 64, 14);
+        doc.text('Tips Koki:', margin + 5, y + 5);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100, 70, 0);
-        const tipLines = doc.splitTextToSize(recipe.tips, contentW - 6);
-        doc.text(tipLines, margin + 3, y + 10);
-        y += 14 + tipLines.length * 4;
+        doc.setTextColor(92, 45, 10);
+        doc.text(tipLines, margin + 5, y + 10);
+        y += tipBoxH + 4;
     }
 
     // Footer
@@ -332,8 +336,9 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
                                             <button
                                                 onClick={() => setExpanded(expanded === i ? null : i)}
                                                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-colors"
+                                                aria-expanded={expanded === i}
                                             >
-                                                {expanded === i ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                                <ChevronDown className={`w-5 h-5 transform transition-transform duration-300 ${expanded === i ? 'rotate-180' : ''}`} />
                                             </button>
                                         </div>
                                     </div>
@@ -346,82 +351,84 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
                                     )}
                                 </div>
 
-                                {/* ── Expanded detail ── */}
-                                {expanded === i && (
-                                    <div className="border-t border-gray-100 dark:border-gray-800">
+                                {/* ── Expanded detail — same grid trick as Riwayat Makan ── */}
+                                <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out ${expanded === i ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                    <div className="overflow-hidden">
+                                        <div className="border-t border-gray-100 dark:border-gray-800">
 
-                                        {/* Time breakdown */}
-                                        {(recipe.preparation_time || recipe.cooking_time) && (
-                                            <div className="flex gap-4 px-5 pt-4">
-                                                {recipe.preparation_time > 0 && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                                        <span className="font-medium text-gray-700 dark:text-gray-300">Persiapan:</span>
-                                                        {recipe.preparation_time} menit
-                                                    </div>
-                                                )}
-                                                {recipe.cooking_time > 0 && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                                        <span className="font-medium text-gray-700 dark:text-gray-300">Memasak:</span>
-                                                        {recipe.cooking_time} menit
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        <div className="p-5 space-y-5">
-                                            {/* Ingredients */}
-                                            <div>
-                                                <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                                                    Bahan-bahan
-                                                    {recipe.servings && <span className="ml-1.5 normal-case text-gray-400">({recipe.servings} porsi)</span>}
-                                                </h5>
-                                                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
-                                                    {recipe.ingredients?.map((ing, j) => (
-                                                        <li key={j} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0 mt-1.5" />
-                                                            {ing}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-
-                                            {/* Steps */}
-                                            <div>
-                                                <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Langkah Memasak</h5>
-                                                <ol className="space-y-3">
-                                                    {recipe.steps?.map((step, j) => (
-                                                        <li key={j} className="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
-                                                            <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                                                {j + 1}
-                                                            </span>
-                                                            <span className="pt-0.5 leading-relaxed">{step}</span>
-                                                        </li>
-                                                    ))}
-                                                </ol>
-                                            </div>
-
-                                            {/* Tips */}
-                                            {recipe.tips && (
-                                                <div className="flex items-start gap-3 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                                                    <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Tips Koki</p>
-                                                        <p className="text-sm text-amber-800 dark:text-amber-300">{recipe.tips}</p>
-                                                    </div>
+                                            {/* Time breakdown */}
+                                            {(recipe.preparation_time || recipe.cooking_time) && (
+                                                <div className="flex gap-4 px-5 pt-4">
+                                                    {recipe.preparation_time > 0 && (
+                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                            <span className="font-medium text-gray-700 dark:text-gray-300">Persiapan:</span>
+                                                            {recipe.preparation_time} menit
+                                                        </div>
+                                                    )}
+                                                    {recipe.cooking_time > 0 && (
+                                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                            <span className="font-medium text-gray-700 dark:text-gray-300">Memasak:</span>
+                                                            {recipe.cooking_time} menit
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 
-                                            {/* Download button (bottom) */}
-                                            <button
-                                                onClick={() => downloadRecipePDF(recipe)}
-                                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/20 dark:bg-emerald-500/15 backdrop-blur-sm border border-emerald-400/50 dark:border-emerald-400/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/30 dark:hover:bg-emerald-400/25 rounded-xl text-sm font-semibold shadow-sm transition-all"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                                Download Resep PDF
-                                            </button>
+                                            <div className="p-5 space-y-5">
+                                                {/* Ingredients */}
+                                                <div>
+                                                    <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                                                        Bahan-bahan
+                                                        {recipe.servings && <span className="ml-1.5 normal-case text-gray-400">({recipe.servings} porsi)</span>}
+                                                    </h5>
+                                                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                                                        {recipe.ingredients?.map((ing, j) => (
+                                                            <li key={j} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0 mt-1.5" />
+                                                                {ing}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+
+                                                {/* Steps */}
+                                                <div>
+                                                    <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Langkah Memasak</h5>
+                                                    <ol className="space-y-3">
+                                                        {recipe.steps?.map((step, j) => (
+                                                            <li key={j} className="flex gap-3 text-sm text-gray-700 dark:text-gray-300">
+                                                                <span className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                                                    {j + 1}
+                                                                </span>
+                                                                <span className="pt-0.5 leading-relaxed">{step}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ol>
+                                                </div>
+
+                                                {/* Tips */}
+                                                {recipe.tips && (
+                                                    <div className="flex items-start gap-3 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                                                        <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Tips Koki</p>
+                                                            <p className="text-sm text-amber-800 dark:text-amber-300">{recipe.tips}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Download button (bottom) */}
+                                                <button
+                                                    onClick={() => downloadRecipePDF(recipe)}
+                                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/20 dark:bg-emerald-500/15 backdrop-blur-sm border border-emerald-400/50 dark:border-emerald-400/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/30 dark:hover:bg-emerald-400/25 rounded-xl text-sm font-semibold shadow-sm transition-all"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                    Download Resep PDF
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
+                                </div>
                             </div>
                             </FadeUp>
                         ))}
