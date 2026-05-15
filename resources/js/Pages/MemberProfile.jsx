@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { Line } from 'react-chartjs-2';
+import FadeUp from '@/Components/FadeUp';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -23,6 +25,75 @@ ChartJS.register(
     Legend,
     Filler
 );
+
+function DayDropdown({ date, dayName, logs, defaultOpen, delay }) {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl group"
+            style={{ animation: `cardSlideUp 0.5s cubic-bezier(0.22,1,0.36,1) ${delay}ms both` }}
+        >
+            <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-4 cursor-pointer focus:outline-none">
+                <div className="flex items-center gap-3">
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${logs.length > 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                        {dayName}
+                    </span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                        {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                    </span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-500">
+                    <span>{logs.length} Meals</span>
+                    <svg className={`w-5 h-5 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </button>
+            <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                    <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+                        {logs.length > 0 ? (
+                            <div className="space-y-3">
+                                {logs.map((log, li) => (
+                                    <div key={log.id}
+                                        className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+                                        style={{ animation: isOpen ? `cardSlideUp 0.4s cubic-bezier(0.22,1,0.36,1) ${li * 60}ms both` : 'none' }}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-gray-400 text-xs font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                                {new Date(log.eaten_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-sm text-gray-900 dark:text-white">{log.name}</div>
+                                                <div className="text-xs text-gray-500">
+                                                    {Math.round(log.calories)} kcal • {log.protein}g P • {log.carbs}g C • {log.fat}g F
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 justify-end max-w-[40%]">
+                                            {log.tags && log.tags.map((tag, tIdx) => (
+                                                <span key={tIdx} className={`text-[10px] px-1.5 py-0.5 rounded truncate max-w-full ${tag.includes('Iron') ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
+                                                    tag.includes('Protein') ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' :
+                                                        'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                                    }`}>
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-sm text-gray-400">
+                                No meals recorded for this day.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function MemberProfile({ auth, member, alerts, weeklyLogs, growthHistory }) {
 
@@ -82,6 +153,10 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
 
     const chartOptions = {
         responsive: true,
+        animation: {
+            duration: 2000,
+            easing: 'easeOutQuart'
+        },
         plugins: {
             legend: { display: false },
         },
@@ -113,6 +188,7 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
                     {/* 1. Header Card */}
+                    <FadeUp delay={0}>
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-4">
                             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-3xl border-4 border-white dark:border-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden text-white font-bold">
@@ -162,8 +238,10 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                             </div>
                         </div>
                     </div>
+                    </FadeUp>
 
                     {/* 2. Health Insights & Alerts */}
+                    <FadeUp delay={100}>
                     <div>
                         <h3 className="text-lg font-bold mb-4">Health Insights & Alerts</h3>
                         <div className="space-y-3">
@@ -196,8 +274,10 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                             )}
                         </div>
                     </div>
+                    </FadeUp>
 
                     {/* 3. Charts Section */}
+                    <FadeUp delay={180}>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Calorie Chart */}
                         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-sm">
@@ -223,8 +303,10 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                             </div>
                         </div>
                     </div>
+                    </FadeUp>
 
                     {/* 4. Weekly Nutrition Log (Dropdown Day-by-Day) */}
+                    <FadeUp delay={260}>
                     <div>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg">Recent Meals</h3>
@@ -238,63 +320,19 @@ export default function MemberProfile({ auth, member, alerts, weeklyLogs, growth
                                 const logs = weeklyLogs[dayName] || [];
 
                                 return (
-                                    <details key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl group" open={i === 0}>
-                                        <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none">
-                                            <div className="flex items-center gap-3">
-                                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${logs.length > 0 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
-                                                    {dayName}
-                                                </span>
-                                                <span className="font-medium text-gray-900 dark:text-white">
-                                                    {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-3 text-sm text-gray-500">
-                                                <span>{logs.length} Meals</span>
-                                                <svg className="w-5 h-5 transform group-open:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                            </div>
-                                        </summary>
-                                        <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-800 pt-3">
-                                            {logs.length > 0 ? (
-                                                <div className="space-y-3">
-                                                    {logs.map(log => (
-                                                        <div key={log.id} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="text-gray-400 text-xs font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
-                                                                    {new Date(log.eaten_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="font-medium text-sm text-gray-900 dark:text-white">{log.name}</div>
-                                                                    <div className="text-xs text-gray-500">
-                                                                        {Math.round(log.calories)} kcal • {log.protein}g P • {log.carbs}g C • {log.fat}g F
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-1 justify-end max-w-[40%]">
-                                                                {log.tags && log.tags.map((tag, tIdx) => (
-                                                                    <span key={tIdx} className={`text-[10px] px-1.5 py-0.5 rounded truncate max-w-full ${tag.includes('Iron') ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
-                                                                        tag.includes('Protein') ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' :
-                                                                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                                                                        }`}>
-                                                                        {tag}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="text-center py-4 text-sm text-gray-400 italic">
-                                                    No meals recorded for this day.
-                                                </div>
-                                            )}
-                                        </div>
-                                    </details>
+                                    <DayDropdown
+                                        key={i}
+                                        date={date}
+                                        dayName={dayName}
+                                        logs={logs}
+                                        defaultOpen={i === 0}
+                                        delay={i * 70}
+                                    />
                                 );
                             })}
                         </div>
                     </div>
+                    </FadeUp>
 
                 </div>
             </div>

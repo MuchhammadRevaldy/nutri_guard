@@ -84,7 +84,7 @@ export default function Authenticated({ user, header, children, headerActions })
                                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                                     active
                                         ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/20'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-white/8'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
                                 }`}
                             >
                                 <Icon className="w-5 h-5 flex-shrink-0" />

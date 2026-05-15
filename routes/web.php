@@ -19,12 +19,61 @@ use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
+        'canLogin'       => Route::has('login'),
+        'canRegister'    => Route::has('register'),
         'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
+        'phpVersion'     => PHP_VERSION,
     ]);
 });
+
+// Public pages
+Route::get('/tentang',      fn() => Inertia::render('Tentang',      ['auth' => ['user' => auth()->user()]]))->name('tentang');
+Route::get('/artikel',      fn() => Inertia::render('Artikel',      ['auth' => ['user' => auth()->user()]]))->name('artikel');
+Route::get('/hubungi-kami', [\App\Http\Controllers\ContactController::class, 'index'])->name('contact.index');
+Route::post('/hubungi-kami', [\App\Http\Controllers\ContactController::class, 'send'])->name('contact.send');
+
+// Chatbot public API (Groq)
+Route::post('/chatbot', function (\Illuminate\Http\Request $request) {
+    $request->validate([
+        'message' => 'required|string|max:500',
+        'history' => 'nullable|array|max:10',
+    ]);
+
+    $apiKey = env('GROQ_API_KEY', '');
+    if (!$apiKey) return response()->json(['reply' => 'Chatbot tidak tersedia saat ini.'], 503);
+
+    $systemPrompt = 'Kamu adalah asisten NutriGuard, platform nutrisi keluarga berbasis AI dari Indonesia. '
+        . 'Bantu pengguna dengan pertanyaan seputar: fitur NutriGuard (NutriScan, FitChef, Meal Planner, Family Dashboard, Laporan), '
+        . 'gizi makanan, kalori, protein, karbohidrat, lemak, nutrisi keluarga, tumbuh kembang anak, dan gaya hidup sehat. '
+        . 'Jawab dengan ramah, singkat, dan dalam Bahasa Indonesia. Jika ditanya di luar topik, arahkan kembali ke topik kesehatan/nutrisi.';
+
+    $messages = [['role' => 'system', 'content' => $systemPrompt]];
+    foreach (($request->history ?? []) as $h) {
+        if (in_array($h['role'] ?? '', ['user', 'assistant'])) {
+            $messages[] = ['role' => $h['role'], 'content' => substr($h['content'] ?? '', 0, 500)];
+        }
+    }
+    $messages[] = ['role' => 'user', 'content' => $request->message];
+
+    $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Authorization: Bearer ' . $apiKey, 'User-Agent: groq-php/1.0'],
+        CURLOPT_POSTFIELDS     => json_encode(['model' => 'llama-3.1-8b-instant', 'messages' => $messages, 'max_tokens' => 300, 'temperature' => 0.7]),
+        CURLOPT_TIMEOUT        => 12,
+    ]);
+    $res  = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($code !== 200) return response()->json(['reply' => 'Maaf, asisten sedang sibuk. Coba lagi sebentar.']);
+
+    $data  = json_decode($res, true);
+    $reply = $data['choices'][0]['message']['content'] ?? 'Maaf, tidak ada respons.';
+
+    return response()->json(['reply' => trim($reply)]);
+})->name('chatbot');
 
 Route::get('/dashboard', function () {
     $user = auth()->user();

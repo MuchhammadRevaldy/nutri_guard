@@ -3,6 +3,7 @@ import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Scan, Upload, Camera, X, AlertTriangle, CheckCircle, Edit2, FlipHorizontal } from 'lucide-react';
 import Modal from '@/Components/Modal';
+import FadeUp from '@/Components/FadeUp';
 
 const MEAL_OPTIONS = [
     { value: 'breakfast', label: 'Sarapan' },
@@ -105,6 +106,7 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
             <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto space-y-6">
 
                 {/* Quota bar */}
+                <FadeUp delay={0}>
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -121,6 +123,7 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{scansUsed} dari {maxScans} scan digunakan hari ini</p>
                 </div>
+                </FadeUp>
 
                 {/* Error */}
                 {error && (
@@ -147,7 +150,9 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
                 )}
 
                 {/* Result */}
+                {/* Result */}
                 {analysis && !isEditing ? (
+                    <FadeUp delay={100}>
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-5 text-white">
                             <div className="flex items-center gap-2 mb-1">
@@ -203,7 +208,9 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
                             </div>
                         </div>
                     </div>
+                    </FadeUp>
                 ) : analysis && isEditing ? (
+                    <FadeUp delay={0}>
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="font-semibold text-gray-900 dark:text-white">Edit Data Nutrisi</h3>
@@ -231,7 +238,9 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
                             </button>
                         </div>
                     </div>
+                    </FadeUp>
                 ) : (
+                    <FadeUp delay={0}>
                     <form onSubmit={handleAnalyze}>
                         <div onDragOver={e => { e.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}
                             className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${isDragging ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
@@ -273,6 +282,7 @@ export default function NutriScan({ auth, analysis, error, scansUsed, scansRemai
                             <p className="text-xs text-red-500 mt-2 text-center">Kuota scan harian habis. Coba lagi besok pukul 00:00.</p>
                         )}
                     </form>
+                    </FadeUp>
                 )}
             </div>
 

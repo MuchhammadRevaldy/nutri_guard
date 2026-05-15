@@ -9,6 +9,7 @@ import {
 import { TrendingUp, Target, Award, Download, ChevronDown, ChevronUp, Utensils } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import FadeUp from '@/Components/FadeUp';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Filler, Tooltip, Legend);
 
@@ -50,6 +51,10 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
 
     const chartOpts = {
         responsive: true, maintainAspectRatio: false,
+        animation: {
+            duration: 2000,
+            easing: 'easeOutQuart'
+        },
         plugins: { legend: { display: false } },
         scales: {
             x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } },
@@ -84,6 +89,7 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
             <div className="p-4 sm:p-6 lg:p-8 space-y-6">
 
                 {/* Header */}
+                <FadeUp delay={0}>
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">Minggu ini</h2>
@@ -93,8 +99,10 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                         <Download className="w-4 h-4" /> PDF
                     </button>
                 </div>
+                </FadeUp>
 
                 {/* Summary cards */}
+                <FadeUp delay={80}>
                 <div className="grid grid-cols-3 gap-4">
                     {[
                         { label: 'Rata-rata', value: avgCalories.toLocaleString('id-ID'), unit: 'kkal/hari', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
@@ -112,13 +120,17 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                         );
                     })}
                 </div>
+                </FadeUp>
 
                 {/* Calorie trend chart */}
+                <FadeUp delay={160}>
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Tren Kalori vs Target</h3>
                     <div className="h-52"><Line data={lineChart} options={{ ...chartOpts, plugins: { legend: { display: true, position: 'bottom', labels: { color: '#9ca3af', font: { size: 10 }, boxWidth: 10 } } } }} /></div>
                 </div>
+                </FadeUp>
 
+                <FadeUp delay={240}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Macro breakdown */}
                     <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
@@ -148,7 +160,10 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                     </div>
                 </div>
 
+                </FadeUp>
+
                 {/* Daily breakdown table */}
+                <FadeUp delay={320}>
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                     <div className="p-5 border-b border-gray-100 dark:border-gray-800">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Detail Per Hari</h3>
@@ -210,53 +225,57 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                                             </tr>
 
                                             {/* ── Expanded detail row ── */}
-                                            {isOpen && (
-                                                <tr key={`detail-${i}`} className="border-b border-gray-100 dark:border-gray-800">
-                                                    <td colSpan={8} className="px-6 py-4 bg-gray-50/80 dark:bg-gray-800/30">
-                                                        <div className="space-y-4">
-                                                            {['breakfast', 'lunch', 'dinner', 'snack'].map(type => {
-                                                                const items = grouped[type];
-                                                                if (!items?.length) return null;
-                                                                return (
-                                                                    <div key={type}>
-                                                                        {/* Meal type label */}
-                                                                        <div className="flex items-center gap-2 mb-2">
-                                                                            <Utensils className="w-3 h-3 text-gray-400" />
-                                                                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${MEAL_COLORS[type]}`}>
-                                                                                {MEAL_LABELS[type]}
-                                                                            </span>
-                                                                            <span className="text-xs text-gray-400">
-                                                                                {items.reduce((s, m) => s + m.calories, 0)} kkal
-                                                                            </span>
-                                                                        </div>
-
-                                                                        {/* Food items */}
-                                                                        <div className="space-y-1.5 pl-5">
-                                                                            {items.map((meal, j) => (
-                                                                                <div key={j} className="flex items-center justify-between gap-4 text-xs">
-                                                                                    <div className="flex items-center gap-2 min-w-0">
-                                                                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
-                                                                                        <span className="text-gray-800 dark:text-gray-200 font-medium truncate">{meal.name}</span>
-                                                                                        <span className="text-gray-400 flex-shrink-0">
-                                                                                            {new Date(meal.eaten_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center gap-3 flex-shrink-0 text-right">
-                                                                                        <span className="text-gray-700 dark:text-gray-300 font-semibold w-16">{meal.calories} kkal</span>
-                                                                                        <span className="text-blue-500 w-12">P {Math.round(meal.protein)}g</span>
-                                                                                        <span className="text-amber-500 w-12">K {Math.round(meal.carbs)}g</span>
-                                                                                        <span className="text-rose-500 w-12">L {Math.round(meal.fat)}g</span>
-                                                                                    </div>
+                                            <tr key={`detail-${i}`} className="border-b border-gray-100 dark:border-gray-800">
+                                                <td colSpan={8} className="p-0 border-0">
+                                                    <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                                        <div className="overflow-hidden">
+                                                            <div className="px-6 py-4 bg-gray-50/80 dark:bg-gray-800/30">
+                                                                <div className="space-y-4">
+                                                                    {['breakfast', 'lunch', 'dinner', 'snack'].map(type => {
+                                                                        const items = grouped[type];
+                                                                        if (!items?.length) return null;
+                                                                        return (
+                                                                            <div key={type}>
+                                                                                {/* Meal type label */}
+                                                                                <div className="flex items-center gap-2 mb-2">
+                                                                                    <Utensils className="w-3 h-3 text-gray-400" />
+                                                                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${MEAL_COLORS[type]}`}>
+                                                                                        {MEAL_LABELS[type]}
+                                                                                    </span>
+                                                                                    <span className="text-xs text-gray-400">
+                                                                                        {items.reduce((s, m) => s + m.calories, 0)} kkal
+                                                                                    </span>
                                                                                 </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
+
+                                                                                {/* Food items */}
+                                                                                <div className="space-y-1.5 pl-5">
+                                                                                    {items.map((meal, j) => (
+                                                                                        <div key={j} className="flex items-center justify-between gap-4 text-xs">
+                                                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
+                                                                                                <span className="text-gray-800 dark:text-gray-200 font-medium truncate">{meal.name}</span>
+                                                                                                <span className="text-gray-400 flex-shrink-0">
+                                                                                                    {new Date(meal.eaten_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                                                                                                <span className="text-gray-700 dark:text-gray-300 font-semibold w-16">{meal.calories} kkal</span>
+                                                                                                <span className="text-blue-500 w-12">P {Math.round(meal.protein)}g</span>
+                                                                                                <span className="text-amber-500 w-12">K {Math.round(meal.carbs)}g</span>
+                                                                                                <span className="text-rose-500 w-12">L {Math.round(meal.fat)}g</span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                            )}
+                                                    </div>
+                                                </td>
+                                            </tr>
                                         </>
                                     );
                                 })}
@@ -264,6 +283,7 @@ export default function Report({ auth, weekRange, avgCalories, dailyBreakdown, i
                         </table>
                     </div>
                 </div>
+                </FadeUp>
             </div>
         </AuthenticatedLayout>
     );

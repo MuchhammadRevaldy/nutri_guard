@@ -1,125 +1,290 @@
-# Nutri Guard
+# NutriGuard — Panduan Instalasi
 
-Selamat datang di repositori aplikasi Nutri Guard! Repositori ini berisi source code untuk aplikasi yang dibangun menggunakan **Laravel** (Backend), **React.js / Inertia.js** (Frontend), dan **Python** (untuk fitur kecerdasan buatan / AI).
+Platform manajemen nutrisi keluarga berbasis AI: NutriScan, FitChef, Meal Planner, Family Dashboard.
 
-## 📌 Prasyarat Sistem
-Pastikan komputer / laptop Anda sudah terinstal perangkat lunak berikut:
-- PHP >= 8.1
-- Composer
-- Node.js & NPM
-- Python 3.x & Pip
-- Laragon atau XAMPP (untuk database MySQL/MariaDB)
+Stack: **Laravel 10** · **React + Inertia.js** · **MySQL** · **Python (PyTorch)**
 
 ---
 
-## 🚀 Panduan Instalasi & Menjalankan Proyek
+## Prasyarat
 
-### 1. Kloning Repositori
-Silakan buka terminal (Command Prompt / PowerShell) atau terminal bawaan VS Code, lalu arahkan ke tempat Anda akan menyimpan file dan jalankan:
+Pastikan software berikut sudah terinstall:
+
+| Software | Versi Minimum | Download |
+|---|---|---|
+| **PHP** | 8.1+ | https://www.php.net/downloads |
+| **Composer** | 2.x | https://getcomposer.org |
+| **Node.js** | 18+ | https://nodejs.org |
+| **MySQL** | 8.0+ | https://dev.mysql.com/downloads |
+| **Python** | 3.9–3.14 | https://www.python.org/downloads |
+| **Git** | any | https://git-scm.com |
+
+---
+
+## 1. Clone Repository
+
 ```bash
-git clone <URL_REPOSITORY>
+git clone https://github.com/MuchhammadRevaldy/nutri_guard.git
 cd nutri_guard
 ```
 
-### 2. Setup Backend (Laravel)
-Jalankan perintah berikut pada terminal yang sedang berada di folder `nutri_guard`:
+---
+
+## 2. Setup Laravel (Backend)
+
 ```bash
-# Instal dependensi PHP (Laravel)
+# Install dependencies PHP
 composer install
 
-# Buat salinan file konfigurasi
-copy .env.example .env
+# Buat file konfigurasi
+cp .env.example .env
+php artisan key:generate
 ```
-Buka file `.env` dan atur informasi koneksi database Anda (biasanya otomatis jika namanya `nutri_guard`). Contohnya:
+
+### Edit `.env` — sesuaikan dengan konfigurasi lokal
+
 ```env
+APP_NAME=NutriGuard
+APP_URL=http://localhost:8000
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=nutri_guard
 DB_USERNAME=root
 DB_PASSWORD=
+
+# Wajib diisi — lihat langkah 4
+NUTRISCAN_PYTHON=C:\Users\NamaKamu\nutri_guard\.venv\Scripts\python.exe
+
+# Opsional — untuk FitChef AI & Chatbot (daftar gratis di console.groq.com)
+GROQ_API_KEY=
 ```
 
-Kemudian, generate application key (Kunci Rahasia Aplikasi):
+### Buat database & jalankan migrasi
+
 ```bash
-php artisan key:generate
-```
+# Buat database di MySQL terlebih dahulu:
+# CREATE DATABASE nutri_guard;
 
-### 3. Setup Konfigurasi Database & Migrasi (Laragon & XAMPP)
-
-Sebelum menjalankan perintah migrasi untuk membuat tabel-tabel di database, Anda wajib membuat nama databasenya terlebih dahulu.
-
-#### A. Jika Menggunakan Laragon (Sangat Disarankan)
-1. Buka aplikasi **Laragon** lalu klik **Start All**.
-2. Klik tombol **Database** di Laragon (biasanya akan otomatis membuka HeidiSQL atau aplikasi manajemen DB bawaan).
-3. Login ke local server (Host: `127.0.0.1`, User: `root`, Password dikosongkan).
-4. Klik kanan pada panel root, pilih **Create new** -> **Database**.
-5. Beri nama `nutri_guard`, lalu klik OK.
-
-#### B. Jika Menggunakan XAMPP
-1. Buka **XAMPP Control Panel**.
-2. Klik tombol **Start** pada modul **Apache** dan **MySQL**.
-3. Klik tombol **Admin** pada modul MySQL, ini akan membuka browser ke halaman **phpMyAdmin** (`http://localhost/phpmyadmin/`).
-4. Pada menu di sebelah kiri atas, klik **New** atau **Baru**.
-5. Masukkan nama basis data `nutri_guard`, lalu klik tombol **Create / Buat**.
-
-#### Menjalankan Migrasi
-Setelah database `nutri_guard` terbentuk di Laragon atau XAMPP, silakan kembali ke terminal/VS Code Anda, lalu jalankan:
-```bash
-# Membuat tabel-tabel di dalam database
 php artisan migrate
-
-# Jika Anda juga ingin mengisi tabel dengan dummy data (Opsional)
-php artisan db:seed
-
-# Membuat link untuk folder penyimpanan (seperti gambar profil, dll)
 php artisan storage:link
 ```
 
-### 4. Setup Frontend (React / Inertia)
-Gunakan terminal untuk menginstal seluruh package JavaScript yang dibutuhkan ke dalam folder `node_modules`.
+---
+
+## 3. Setup Frontend (Node.js)
+
 ```bash
 npm install
 ```
 
-### 5. Setup Layanan Python (Untuk Fitur AI)
-Fitur scanning atau AI chatbot pada aplikasi ini dikendalikan oleh service Python dan Machine Learning.
-Silakan buka terminal **baru**, lalu jalankan instalasi *library* berikut:
+---
+
+## 4. Setup Python — NutriScan AI ⭐
+
+> Bagian ini **wajib** agar fitur scan makanan bisa berjalan.
+
+### Langkah 4.1 — Buat Virtual Environment
+
+**Windows:**
 ```bash
-# Masuk ke folder service Python
-cd services/python
-
-# Instal library yang dibutuhkan via pip
-pip install -r requirements.txt
+python -m venv .venv
+.venv\Scripts\activate
 ```
-*(Catatan: Ukuran library PyTorch bisa hingga 2GB lebih. Jika Anda tidak butuh komputasi GPU / Nvidia, disarankan paksa install versi CPU agar ukurannya lebih kecil menggunakan perintah:)*  
-`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`
 
-### 6. Menjalankan Aplikasi
-Kini semuanya telah siap. Anda perlu menjalankan Backend (PHP) dan Frontend (Vite) secara bersamaan di 2 terminal (tab) yang berbeda:
+**Linux / Mac:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-**Terminal 1 (Backend - Laravel):**
+### Langkah 4.2 — Install library Python
+
+```bash
+pip install torch torchvision Pillow numpy
+```
+
+> ⏳ Proses ini membutuhkan waktu beberapa menit karena PyTorch ~2 GB.
+
+### Langkah 4.3 — Verifikasi instalasi
+
+```bash
+python -c "import torch, torchvision; from PIL import Image; print('OK — torch', torch.__version__)"
+```
+
+Output yang diharapkan: `OK — torch 2.x.x+cpu`
+
+### Langkah 4.4 — Temukan path Python yang benar
+
+**Windows:**
+```bash
+.venv\Scripts\python.exe --version
+# Contoh path: C:\Users\Sandy\nutri_guard\.venv\Scripts\python.exe
+```
+
+**Linux / Mac:**
+```bash
+.venv/bin/python --version
+# Contoh path: /home/user/nutri_guard/.venv/bin/python
+```
+
+### Langkah 4.5 — Update `.env`
+
+Isi `NUTRISCAN_PYTHON` dengan path yang didapat di langkah 4.4:
+
+**Windows:**
+```env
+NUTRISCAN_PYTHON=C:\Users\NamaKamu\nutri_guard\.venv\Scripts\python.exe
+```
+
+**Linux / Mac:**
+```env
+NUTRISCAN_PYTHON=/home/user/nutri_guard/.venv/bin/python
+```
+
+### Langkah 4.6 — Salin file model AI
+
+> ⚠️ File `food101_model.pth` **tidak ikut di-push ke GitHub** karena ukurannya besar (~90 MB).
+> Minta file ini dari pemilik proyek, lalu letakkan di:
+
+```
+nutri_guard/services/python/food101_model.pth
+```
+
+### Langkah 4.7 — Test NutriScan (opsional)
+
+```bash
+# Pastikan venv aktif, lalu:
+python services/python/predict_cli.py path/ke/foto_makanan.jpg
+
+# Output yang diharapkan (JSON):
+# {"food_name": "Nasi Goreng", "confidence": 85.2, "nutrition": {...}}
+```
+
+---
+
+## 5. Clear Config & Jalankan
+
+```bash
+# Bersihkan cache Laravel
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+```
+
+Buka **2 terminal** secara bersamaan:
+
+**Terminal 1 — Laravel server:**
 ```bash
 php artisan serve
 ```
 
-**Terminal 2 (Frontend - Vite / React):**
+**Terminal 2 — Vite (frontend dev):**
 ```bash
 npm run dev
 ```
 
-Aplikasi sekarang sudah berjalan! Silakan buka browser Anda dan ketikkan alamat: **http://localhost:8000**
+Akses aplikasi di: **http://localhost:8000**
 
 ---
 
-## 🔑 Konfigurasi API Keys (Wajib Diisi!)
-Beberapa fitur spesifik (Chat AI, Scanning Gizi, dll) memerlukan kunci API dari pihak ketiga. Silakan buka file `.env` di folder root dan lengkapi baris ini apabila Anda memilikinya:
+## Troubleshooting
+
+### ❌ `ModuleNotFoundError: No module named 'torch'`
+Python yang dipanggil bukan dari virtual environment.
 ```env
-OPENAI_API_KEY=masukkan_api_key_disini
-GOOGLE_API_KEY=masukkan_api_key_disini
-GROQ_API_KEY=masukkan_api_key_disini
+# Benar ✓  — path ke dalam .venv
+NUTRISCAN_PYTHON=C:\Users\...\nutri_guard\.venv\Scripts\python.exe
+
+# Salah ✗  — Python sistem global
+NUTRISCAN_PYTHON=python
+```
+
+### ❌ `OSError: No username set in the environment` (Windows + Python 3.14)
+Sudah ditangani otomatis oleh controller. Jika masih muncul, jalankan:
+```bash
+set USERNAME=NamaKamu
+php artisan serve
+```
+
+### ❌ `The system cannot find the path specified`
+Path di `NUTRISCAN_PYTHON` salah. Ikuti ulang **Langkah 4.4**.
+
+### ❌ Error migrasi / tabel tidak ditemukan
+```bash
+php artisan migrate:status   # Cek status migrasi
+php artisan migrate          # Jalankan migrasi yang belum berjalan
+```
+
+### ❌ Halaman putih / 500 error
+```bash
+php artisan config:clear && php artisan cache:clear && php artisan route:clear
+```
+
+### ❌ `SQLSTATE: Access denied` (database)
+Pastikan `DB_USERNAME` dan `DB_PASSWORD` di `.env` sesuai dengan MySQL lokal kamu.
+
+---
+
+## Struktur Penting
+
+```
+nutri_guard/
+├── app/Http/Controllers/       # Laravel controllers
+├── app/Models/                 # Eloquent models
+├── database/migrations/        # Skema database
+├── resources/js/
+│   ├── Pages/                  # Halaman React (Inertia)
+│   └── Components/             # Komponen React
+├── services/python/
+│   ├── predict_cli.py          # Script AI NutriScan ← entry point
+│   ├── food101_model.pth       # ⚠️  Model AI — MINTA DARI PEMILIK PROYEK
+│   └── requirements.txt        # Library Python
+├── .env                        # Konfigurasi lokal (tidak di-push ke git)
+├── .env.example                # Template .env ← salin ini
+└── .venv/                      # Virtual environment Python (tidak di-push)
 ```
 
 ---
-**⚠️ Catatan untuk Deployment Server:**
-Aplikasi ini memanfaatkan program Python serta memori yang di-*consume* oleh library Machine Learning. Disarankan untuk **TIDAK** menggunakan *Shared Hosting (seperti cPanel)*, melainkan silakan sediakan **VPS (Virtual Private Server)** dari layanan seperti AWS, DigitalOcean, Linode, atau sejenisnya, sebab Anda memerlukan akses *root* SSH untuk menyetel *environment* secara utuh dan terhindar dari *Out-of-Memory*.
+
+## API Keys (Opsional)
+
+Tanpa API key, aplikasi tetap berjalan dengan data demo.
+
+| Fitur | Variable | Cara Dapat |
+|---|---|---|
+| FitChef AI | `GROQ_API_KEY` | Daftar gratis di https://console.groq.com |
+| Chatbot | `GROQ_API_KEY` | Key yang sama |
+| NutriScan (estimasi kalori) | `GROQ_API_KEY` | Key yang sama |
+
+---
+
+## Ringkasan Cepat
+
+```bash
+git clone https://github.com/MuchhammadRevaldy/nutri_guard.git && cd nutri_guard
+
+# Laravel
+composer install
+cp .env.example .env
+php artisan key:generate
+# Edit .env: isi DB_ dan NUTRISCAN_PYTHON
+php artisan migrate
+php artisan storage:link
+
+# Frontend
+npm install
+
+# Python (wajib untuk NutriScan)
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+pip install torch torchvision Pillow numpy
+# Salin food101_model.pth ke services/python/
+# Update NUTRISCAN_PYTHON di .env dengan path ke .venv\Scripts\python.exe
+
+# Jalankan
+php artisan config:clear
+php artisan serve               # Terminal 1
+npm run dev                     # Terminal 2
+```

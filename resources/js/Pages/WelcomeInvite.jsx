@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import FadeUp from '@/Components/FadeUp';
 
 export default function WelcomeInvite({ auth, invitations, unreadChats = [] }) {
     const hasNotifications = invitations.length > 0 || unreadChats.length > 0;
@@ -15,13 +16,16 @@ export default function WelcomeInvite({ auth, invitations, unreadChats = [] }) {
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
                     {/* Welcome Card */}
+                    <FadeUp delay={0}>
                     <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
                         <h1 className="text-2xl font-bold mb-2">Welcome Back, {auth.user.name.split(' ')[0]}! 👋</h1>
                         <p className="opacity-90">Here are your latest updates and notifications.</p>
                     </div>
+                    </FadeUp>
 
                     {/* Empty State */}
                     {!hasNotifications && (
+                        <FadeUp delay={100}>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center shadow-sm border border-gray-100 dark:border-gray-700">
                             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
                                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -34,14 +38,17 @@ export default function WelcomeInvite({ auth, invitations, unreadChats = [] }) {
                                 Go to Dashboard
                             </Link>
                         </div>
+                        </FadeUp>
                     )}
 
                     {/* Chat Notifications */}
                     {unreadChats.length > 0 && (
+                        <FadeUp delay={100}>
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 px-1">Unread Messages</h3>
                             {unreadChats.map((chat, idx) => (
-                                <Link href={route('chat.index')} key={idx} className="block group">
+                                <FadeUp delay={idx * 60} key={idx}>
+                                <Link href={route('chat.index')} className="block group">
                                     <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4 transition-transform transform hover:scale-[1.01]">
                                         <div className="relative">
                                             <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold">
@@ -69,16 +76,20 @@ export default function WelcomeInvite({ auth, invitations, unreadChats = [] }) {
                                         </div>
                                     </div>
                                 </Link>
+                                </FadeUp>
                             ))}
                         </div>
+                        </FadeUp>
                     )}
 
                     {/* Invitations */}
                     {invitations.length > 0 && (
+                        <FadeUp delay={200}>
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 px-1">Family Invitations</h3>
-                            {invitations.map((invite) => (
-                                <div key={invite.id} className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-emerald-100 dark:border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            {invitations.map((invite, idx) => (
+                                <FadeUp delay={idx * 60} key={invite.id}>
+                                <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-emerald-100 dark:border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <div className="flex items-center gap-4 w-full sm:w-auto">
                                         <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl">
                                             📩
@@ -101,8 +112,10 @@ export default function WelcomeInvite({ auth, invitations, unreadChats = [] }) {
                                         </a>
                                     </div>
                                 </div>
+                                </FadeUp>
                             ))}
                         </div>
+                        </FadeUp>
                     )}
 
                 </div>

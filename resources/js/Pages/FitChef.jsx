@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import FadeUp from '@/Components/FadeUp';
 import {
     ChefHat, Plus, X, AlertTriangle, Clock, Flame,
     Loader2, ChevronDown, ChevronUp, Download,
@@ -190,6 +191,7 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
             <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto">
 
                 {/* Calorie budget + allergen info */}
+                <FadeUp delay={0}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
                         <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Sisa Kalori Hari Ini</div>
@@ -220,8 +222,10 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
                         )}
                     </div>
                 </div>
+                </FadeUp>
 
                 {/* Ingredient input */}
+                <FadeUp delay={100}>
                 <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Bahan yang Tersedia</h3>
                     <div className="flex gap-2 mb-3">
@@ -252,13 +256,14 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
                     <button
                         onClick={generate}
                         disabled={ingredients.length === 0 || loading}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 py-3 bg-orange-500/50 backdrop-blur-md border border-orange-400/50 hover:bg-orange-400/60 text-white font-bold rounded-xl text-sm shadow-lg shadow-orange-500/20 transition-all disabled:opacity-50"
                     >
                         {loading
                             ? <><Loader2 className="w-4 h-4 animate-spin" /> Membuat resep...</>
                             : <><ChefHat className="w-4 h-4" /> Buat Resep</>}
                     </button>
                 </div>
+                </FadeUp>
 
                 {/* Error */}
                 {error && (
@@ -271,9 +276,10 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
                 {/* Recipes */}
                 {recipes.length > 0 && (
                     <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{recipes.length} Resep Ditemukan</h3>
+                        <FadeUp delay={0}><h3 className="text-sm font-semibold text-gray-900 dark:text-white">{recipes.length} Resep Ditemukan</h3></FadeUp>
 
                         {recipes.map((recipe, i) => (
+                            <FadeUp key={i} delay={i * 80}>
                             <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
 
                                 {/* ── Recipe header ── */}
@@ -408,7 +414,7 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
                                             {/* Download button (bottom) */}
                                             <button
                                                 onClick={() => downloadRecipePDF(recipe)}
-                                                className="w-full flex items-center justify-center gap-2 py-2.5 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl text-sm font-semibold transition-colors"
+                                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500/20 dark:bg-emerald-500/15 backdrop-blur-sm border border-emerald-400/50 dark:border-emerald-400/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/30 dark:hover:bg-emerald-400/25 rounded-xl text-sm font-semibold shadow-sm transition-all"
                                             >
                                                 <Download className="w-4 h-4" />
                                                 Download Resep PDF
@@ -417,6 +423,7 @@ export default function FitChef({ auth, remainingCalories, calorieGoal, allergie
                                     </div>
                                 )}
                             </div>
+                            </FadeUp>
                         ))}
                     </div>
                 )}

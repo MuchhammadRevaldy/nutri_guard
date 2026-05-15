@@ -22,9 +22,8 @@ function formatTime(date) {
     return new Date(date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, animate = false }) {
     const isBot = msg.role === 'assistant';
-    // Render **bold** markdown
     const renderContent = (text) => {
         const parts = text.split(/(\*\*[^*]+\*\*)/g);
         return parts.map((part, i) =>
@@ -35,7 +34,12 @@ function MessageBubble({ msg }) {
     };
 
     return (
-        <div className={`flex gap-2 ${isBot ? 'justify-start' : 'justify-end'}`}>
+        <div
+            className={`flex gap-2 ${isBot ? 'justify-start' : 'justify-end'}`}
+            style={animate ? {
+                animation: 'bubbleIn 0.35s cubic-bezier(0.22,1,0.36,1) both'
+            } : {}}
+        >
             {isBot && (
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-md">
                     <Bot className="w-3.5 h-3.5 text-white" />
@@ -67,6 +71,7 @@ function MessageBubble({ msg }) {
 
 export default function NutriBot() {
     const [open, setOpen]         = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
     const [minimized, setMin]     = useState(false);
     const [messages, setMessages] = useState([WELCOME]);
     const [input, setInput]       = useState('');
@@ -78,6 +83,15 @@ export default function NutriBot() {
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    function closeBot() {
+        setIsClosing(true);
+        setTimeout(() => {
+            setOpen(false);
+            setIsClosing(false);
+            setMin(false);
+        }, 350); // match slideDownPanel duration
+    }
 
     // Focus input when opened
     useEffect(() => {
@@ -151,8 +165,11 @@ export default function NutriBot() {
             )}
 
             {/* Chat window */}
-            {open && (
-                <div className={`fixed bottom-6 right-6 z-50 w-[360px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl shadow-black/20 flex flex-col overflow-hidden transition-all duration-300 ${minimized ? 'h-16' : 'h-[520px]'}`}>
+            {(open || isClosing) && (
+                <div
+                    className={`fixed bottom-6 right-6 z-50 w-[360px] bg-white dark:bg-gray-900 rounded-3xl shadow-2xl shadow-black/20 flex flex-col overflow-hidden transition-all duration-500 ${minimized ? 'h-16' : 'h-[520px]'}`}
+                    style={{ animation: isClosing ? 'slideDownPanel 0.35s cubic-bezier(0.22,1,0.36,1) both' : 'slideUpPanel 0.45s cubic-bezier(0.22,1,0.36,1) both' }}
+                >
 
                     {/* Header */}
                     <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 flex-shrink-0">
@@ -166,10 +183,10 @@ export default function NutriBot() {
                                 <span className="text-[11px] text-emerald-100">Online</span>
                             </div>
                         </div>
-                        <button onClick={() => setMin(v => !v)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 rounded-lg transition-colors">
+                        <button onClick={() => setMin(v => !v)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/20 hover:scale-110 active:scale-95 rounded-lg transition-all duration-300">
                             <Minus className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setOpen(false)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 rounded-lg transition-colors">
+                        <button onClick={() => closeBot()} className="p-1.5 text-white/70 hover:text-white hover:bg-white/20 hover:scale-110 active:scale-95 rounded-lg transition-all duration-300 hover:rotate-90">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
@@ -180,7 +197,7 @@ export default function NutriBot() {
                             {/* Messages */}
                             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
                                 {messages.map((msg, i) => (
-                                    <MessageBubble key={i} msg={msg} />
+                                    <MessageBubble key={i} msg={msg} animate={i === messages.length - 1} />
                                 ))}
                                 {/* Quick chips on first message */}
                                 {showChips && (
