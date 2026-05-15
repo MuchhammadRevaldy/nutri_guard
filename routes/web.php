@@ -39,7 +39,7 @@ Route::post('/chatbot', function (\Illuminate\Http\Request $request) {
         'history' => 'nullable|array|max:10',
     ]);
 
-    $apiKey = env('GROQ_API_KEY', '');
+    $apiKey = config('services.groq.key', '');
     if (!$apiKey) return response()->json(['reply' => 'Chatbot tidak tersedia saat ini.'], 503);
 
     $systemPrompt = 'Kamu adalah asisten NutriGuard, platform nutrisi keluarga berbasis AI dari Indonesia. '

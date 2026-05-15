@@ -47,7 +47,7 @@ class FitChefController extends Controller
         $allergies         = $myself?->allergies ?? [];
 
         $ingredients = implode(', ', $request->input('ingredients'));
-        $apiKey      = env('GROQ_API_KEY', '');
+        $apiKey      = config('services.groq.key', '');
 
         $count = max(1, min(12, (int) ($request->input('count') ?? random_int(6, 12))));
 
