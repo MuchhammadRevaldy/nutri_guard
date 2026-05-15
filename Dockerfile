@@ -36,9 +36,9 @@ COPY . /var/www
 RUN composer install --optimize-autoloader --no-dev
 RUN npm install && npm run build
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage
+# Set permissions for Hugging Face (runs as uid 1000)
+RUN chmod -R 777 /var/www/storage \
+    && chmod -R 777 /var/www/bootstrap/cache
 
 # Add custom php.ini if needed
 # COPY php.ini /usr/local/etc/php/conf.d/40-custom.ini
