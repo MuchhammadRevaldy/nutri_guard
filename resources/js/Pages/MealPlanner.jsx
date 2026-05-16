@@ -42,7 +42,7 @@ function AddMealModal({ date, mealType, calorieGoal, onClose }) {
     }
 
     return (
-        <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
             <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl transition-all duration-300 ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'}`}>
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
                     <h3 className="font-bold text-gray-900 dark:text-white">Tambah {MEAL_META[mealType]?.label}</h3>
@@ -260,7 +260,7 @@ function MealDetailModal({ meal, onClose, onDelete }) {
     const diffColor = { 'Mudah': 'text-emerald-500', 'Sedang': 'text-amber-500', 'Sulit': 'text-red-500' };
 
     return (
-        <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
             {/* Modal — wider when recipe visible */}
             <div className={`bg-white dark:bg-gray-900 rounded-3xl w-full shadow-2xl overflow-hidden transition-all duration-300 ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'} ${
                 view === 'recipe' ? 'max-w-md' : 'max-w-sm'
@@ -695,7 +695,10 @@ export default function MealPlanner({ auth, days, weekStart, weekEnd, calorieGoa
                 <MealDetailModal
                     meal={selectedMeal}
                     onClose={() => setMeal(null)}
-                    onDelete={(id) => { requestDeletePlan(id); setMeal(null); }}
+                    onDelete={(id) => { 
+                        router.delete(route('meal-planner.destroy', id), { preserveState: true }); 
+                        setMeal(null); 
+                    }}
                 />
             )}
 

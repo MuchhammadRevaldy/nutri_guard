@@ -2,7 +2,7 @@ import ThemeToggle from '@/Components/ThemeToggle';
 
 export default function Guest({ children }) {
     return (
-        <div className="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+        <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
             <div className="absolute top-4 right-4">
                 <ThemeToggle />
             </div>
